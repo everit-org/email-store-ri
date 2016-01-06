@@ -24,58 +24,73 @@
 
   <changeSet id="1.0.0" author="everit">
 
-    <createTable tableName="email">
-      <column name="email_id" type="bigint" autoIncrement="true">
-        <constraints primaryKey="true" nullable="false" primaryKeyName="pk_email" />
+    <createTable tableName="EMSTR_EMAIL">
+      <column name="STORED_EMAIL_ID" type="BIGINT" autoIncrement="true">
+        <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_EMAIL" />
       </column>
-      <column name="subject" type="java.sql.Types.VARCHAR(256)">
+      <column name="SUBJECT_" type="java.sql.Types.VARCHAR(255)">
         <constraints nullable="false" />
       </column>
-      <column name="html_content" type="LONGVARCHAR" />
-      <column name="text_content" type="LONGVARCHAR" />
+      <column name="HTML_CONTENT" type="LONGVARCHAR" />
+      <column name="TEXT_CONTENT" type="LONGVARCHAR" />
     </createTable>
 
-    <createTable tableName="email_address">
-      <column name="email_address_id" type="bigint" autoIncrement="true">
-        <constraints primaryKey="true" nullable="false" primaryKeyName="pk_email_address" />
+    <createTable tableName="EMSTR_EMAIL_ADDRESS">
+      <column name="EMAIL_ADDRESS_ID" type="BIGINT" autoIncrement="true">
+        <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_EMAIL_ADDRESS" />
       </column>
-      <column name="address" type="java.sql.Types.VARCHAR(256)">
+      <column name="ADDRESS" type="java.sql.Types.VARCHAR(255)">
         <constraints nullable="false" />
       </column>
-      <column name="personal" type="java.sql.Types.VARCHAR(256)">
+      <column name="PERSONAL" type="java.sql.Types.VARCHAR(255)">
         <constraints nullable="false" />
       </column>
-      <column name="type" type="tinyint">
-        <constraints nullable="false" />
-      </column>
-      <column name="email_id" type="bigint">
+      <column name="STORED_EMAIL_ID" type="BIGINT">
         <constraints nullable="false" />
       </column>
     </createTable>
 
-    <createTable tableName="email_inline_image">
-      <column name="email_inline_image_id" type="bigint" autoIncrement="true">
-        <constraints primaryKey="true" nullable="false" primaryKeyName="pk_email_inline_image" />
+    <createTable tableName="EMSTR_EMAIL_RECIPIENT">
+      <column name="EMAIL_RECIPIENT_ID" type="BIGINT" autoIncrement="true">
+        <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_EMAIL_RECIPIENT" />
       </column>
-      <column name="cid" type="java.sql.Types.VARCHAR(256)">
+      <column name="RECIPIENT_TYPE" type="java.sql.Types.VARCHAR(255)">
         <constraints nullable="false" />
       </column>
-      <column name="attachment_blob_id" type="java.sql.Types.VARCHAR(256)">
+      <column name="INDEX_" type="INT">
         <constraints nullable="false" />
       </column>
-      <column name="email_id" type="bigint">
+      <column name="STORED_EMAIL_ID" type="BIGINT">
+        <constraints nullable="false" />
+      </column>
+      <column name="EMAIL_ADDRESS_ID" type="BIGINT">
         <constraints nullable="false" />
       </column>
     </createTable>
 
-    <createTable tableName="email_attachment">
-      <column name="email_attachment_id" type="bigint" autoIncrement="true">
-        <constraints primaryKey="true" nullable="false" primaryKeyName="pk_email_inline_image" />
+    <createTable tableName="EMSTR_EMAIL_INLINE_IMAGE">
+      <column name="EMAIL_INLINE_IMAGE_ID" type="BIGINT" autoIncrement="true">
+        <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_EMAIL_INLINE_IMAGE" />
       </column>
-      <column name="attachment_blob_id" type="java.sql.Types.VARCHAR(256)">
+      <column name="CID" type="java.sql.Types.VARCHAR(255)">
         <constraints nullable="false" />
       </column>
-      <column name="email_id" type="bigint">
+      <column name="BLOB_ID" type="BIGINT">
+        <constraints nullable="false" />
+      </column>
+      <column name="STORED_EMAIL_ID" type="BIGINT">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+
+    <createTable tableName="EMSTR_EMAIL_ATTACHMENT">
+      <column name="EMAIL_ATTACHMENT_ID" type="BIGINT" autoIncrement="true">
+        <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_EMAIL_INLINE_IMAGE" />
+      </column>
+      <column name="BLOB_ID" type="BIGINT">
+        <constraints nullable="false" />
+      </column>
+      <column name="STORED_EMAIL_ID" type="BIGINT">
         <constraints nullable="false" />
       </column>
     </createTable>
