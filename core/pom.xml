@@ -28,7 +28,7 @@
   </parent>
 
   <groupId>org.everit.email</groupId>
-  <artifactId>org.everit.email.store.ri.schema.qdsl</artifactId>
+  <artifactId>org.everit.email.store.ri</artifactId>
   <version>1.0.0-SNAPSHOT</version>
 
   <packaging>bundle</packaging>
@@ -87,23 +87,7 @@
             </Import-Package>
             <Export-Package>
             </Export-Package>
-            <Require-Capability>
-              liquibase.schema;filter:="(name=org.everit.blobstore.jdbc)"
-            </Require-Capability>
-            <Provide-Capability>
-              liquibase.schema;name=org.everit.email.store.ri;resource=/META-INF/liquibase/email.store.ri.liquibase.xml;lqmg.config.resource=/META-INF/liquibase/email.store.ri.lqmg.xml
-            </Provide-Capability>
           </instructions>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.everit.osgi.dev</groupId>
-        <artifactId>lqmg-maven-plugin</artifactId>
-        <version>3.0.1</version>
-        <configuration>
-          <defaultSchema>org.everit.email.store.ri</defaultSchema>
-          <capability>org.everit.email.store.ri</capability>
-          <packages>org.everit.email.store.ri.schema.qdsl</packages>
         </configuration>
       </plugin>
     </plugins>
@@ -111,9 +95,29 @@
 
   <dependencies>
     <dependency>
-      <groupId>com.mysema.querydsl</groupId>
-      <artifactId>querydsl-sql</artifactId>
-      <version>3.7.0</version>
+      <groupId>org.everit.email</groupId>
+      <artifactId>org.everit.email.store.api</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>org.everit.email</groupId>
+      <artifactId>org.everit.email.store.ri.schema.qdsl</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>org.everit.blobstore</groupId>
+      <artifactId>org.everit.blobstore.api</artifactId>
+      <version>1.0.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.everit.persistence</groupId>
+      <artifactId>org.everit.persistence.querydsl.support.api</artifactId>
+      <version>1.0.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.everit.transaction</groupId>
+      <artifactId>org.everit.transaction.propagator.api</artifactId>
+      <version>1.0.0</version>
     </dependency>
   </dependencies>
 
