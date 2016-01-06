@@ -22,6 +22,8 @@
   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.0.xsd
         http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
 
+<!--   <include file="eosgi:org.everit.blobstore.jdbc" /> -->
+
   <changeSet id="1.0.0" author="everit">
 
     <createTable tableName="EMSTR_EMAIL">
@@ -31,13 +33,23 @@
       <column name="SUBJECT_" type="java.sql.Types.VARCHAR(255)">
         <constraints nullable="false" />
       </column>
-      <column name="HTML_CONTENT" type="LONGVARCHAR" />
-      <column name="TEXT_CONTENT" type="LONGVARCHAR" />
+      <column name="HTML_CONTENT_BLOB_ID" type="BIGINT">
+        <constraints nullable="false" />
+      </column>
+      <column name="TEXT_CONTENT_BLOB_ID" type="BIGINT">
+        <constraints nullable="false" />
+      </column>
     </createTable>
+<!--     <addForeignKeyConstraint constraintName="FK_EMSTR_EMAIL_BSTR_BLOB_HTML" -->
+<!--       baseColumnNames="HTML_CONTENT_BLOB_ID" baseTableName="EMSTR_EMAIL" referencedColumnNames="BLOB_ID" -->
+<!--       referencedTableName="BLOBSTORE_BLOB" /> -->
+<!--     <addForeignKeyConstraint constraintName="FK_EMSTR_EMAIL_BSTR_BLOB_TEXT" -->
+<!--       baseColumnNames="TEXT_CONTENT_BLOB_ID" baseTableName="EMSTR_EMAIL" referencedColumnNames="BLOB_ID" -->
+<!--       referencedTableName="BLOBSTORE_BLOB" /> -->
 
-    <createTable tableName="EMSTR_EMAIL_ADDRESS">
+    <createTable tableName="EMSTR_ADDRESS">
       <column name="EMAIL_ADDRESS_ID" type="BIGINT" autoIncrement="true">
-        <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_EMAIL_ADDRESS" />
+        <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_ADDRESS" />
       </column>
       <column name="ADDRESS" type="java.sql.Types.VARCHAR(255)">
         <constraints nullable="false" />
@@ -49,6 +61,9 @@
         <constraints nullable="false" />
       </column>
     </createTable>
+<!--     <addForeignKeyConstraint constraintName="FK_EMSTR_ADDRESS_EMAIL" -->
+<!--       baseColumnNames="STORED_EMAIL_ID" baseTableName="EMSTR_ADDRESS" referencedColumnNames="STORED_EMAIL_ID" -->
+<!--       referencedTableName="EMSTR_EMAIL" /> -->
 
     <createTable tableName="EMSTR_EMAIL_RECIPIENT">
       <column name="EMAIL_RECIPIENT_ID" type="BIGINT" autoIncrement="true">
@@ -57,7 +72,7 @@
       <column name="RECIPIENT_TYPE" type="java.sql.Types.VARCHAR(255)">
         <constraints nullable="false" />
       </column>
-      <column name="INDEX_" type="INT">
+      <column name="INDEX_" type="BIGINT">
         <constraints nullable="false" />
       </column>
       <column name="STORED_EMAIL_ID" type="BIGINT">
@@ -67,33 +82,73 @@
         <constraints nullable="false" />
       </column>
     </createTable>
+    <addForeignKeyConstraint constraintName="FK_EMSTR_EMAIL_RCPNT_EMAIL"
+      baseColumnNames="STORED_EMAIL_ID" baseTableName="EMSTR_EMAIL_RECIPIENT" referencedColumnNames="STORED_EMAIL_ID"
+      referencedTableName="EMSTR_EMAIL" />
+    <addForeignKeyConstraint constraintName="FK_EMSTR_EMAIL_RCPNT_ADDRESS"
+      baseColumnNames="EMAIL_ADDRESS_ID" baseTableName="EMSTR_EMAIL_RECIPIENT"
+      referencedColumnNames="EMAIL_ADDRESS_ID" referencedTableName="EMSTR_ADDRESS" />
 
-    <createTable tableName="EMSTR_EMAIL_INLINE_IMAGE">
-      <column name="EMAIL_INLINE_IMAGE_ID" type="BIGINT" autoIncrement="true">
-        <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_EMAIL_INLINE_IMAGE" />
+    <createTable tableName="EMSTR_BINARY_CONTENT">
+      <column name="BINARY_CONTENT_ID" type="BIGINT" autoIncrement="true">
+        <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_BINARY_CONTENT" />
       </column>
-      <column name="CID" type="java.sql.Types.VARCHAR(255)">
+      <column name="NAME_" type="java.sql.Types.VARCHAR(255)">
         <constraints nullable="false" />
       </column>
       <column name="BLOB_ID" type="BIGINT">
         <constraints nullable="false" />
       </column>
-      <column name="STORED_EMAIL_ID" type="BIGINT">
-        <constraints nullable="false" />
-      </column>
     </createTable>
+<!--     <addForeignKeyConstraint constraintName="FK_EMSTR_BINARY_CONT_BSTR_BLOB" -->
+<!--       baseColumnNames="BLOB_ID" baseTableName="EMSTR_BINARY_CONTENT" referencedColumnNames="BLOB_ID" -->
+<!--       referencedTableName="BLOBSTORE_BLOB" /> -->
 
-    <createTable tableName="EMSTR_EMAIL_ATTACHMENT">
-      <column name="EMAIL_ATTACHMENT_ID" type="BIGINT" autoIncrement="true">
-        <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_EMAIL_INLINE_IMAGE" />
+    <createTable tableName="EMSTR_INLINE_IMAGE">
+      <column name="INLINE_IMAGE_ID" type="BIGINT" autoIncrement="true">
+        <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_INLINE_IMAGE" />
       </column>
-      <column name="BLOB_ID" type="BIGINT">
+      <column name="CID_" type="java.sql.Types.VARCHAR(255)">
+        <constraints nullable="false" />
+      </column>
+      <column name="BINARY_CONTENT_ID" type="BIGINT">
         <constraints nullable="false" />
       </column>
       <column name="STORED_EMAIL_ID" type="BIGINT">
         <constraints nullable="false" />
       </column>
+      <column name="INDEX_" type="BIGINT">
+        <constraints nullable="false" />
+      </column>
     </createTable>
+    <addForeignKeyConstraint constraintName="FK_EMSTR_INLINE_IMAGE_EMAIL"
+      baseColumnNames="STORED_EMAIL_ID" baseTableName="EMSTR_INLINE_IMAGE" referencedColumnNames="STORED_EMAIL_ID"
+      referencedTableName="EMSTR_EMAIL" />
+    <addForeignKeyConstraint constraintName="FK_EMSTR_INLINE_IMG_BNRY_CONT"
+      baseColumnNames="BINARY_CONTENT_ID" baseTableName="EMSTR_INLINE_IMAGE" referencedColumnNames="BINARY_CONTENT_ID"
+      referencedTableName="EMSTR_BINARY_CONTENT" />
+
+    <createTable tableName="EMSTR_ATTACHMENT">
+      <column name="ATTACHMENT_ID" type="BIGINT" autoIncrement="true">
+        <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_ATTACHMENT" />
+      </column>
+      <column name="BINARY_CONTENT_ID" type="BIGINT">
+        <constraints nullable="false" />
+      </column>
+      <column name="STORED_EMAIL_ID" type="BIGINT">
+        <constraints nullable="false" />
+      </column>
+      <column name="INDEX_" type="BIGINT">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+    <addForeignKeyConstraint constraintName="FK_EMSTR_ATTACHMENT_EMAIL"
+      baseColumnNames="STORED_EMAIL_ID" baseTableName="EMSTR_ATTACHMENT" referencedColumnNames="STORED_EMAIL_ID"
+      referencedTableName="EMSTR_EMAIL" />
+    <addForeignKeyConstraint constraintName="FK_EMSTR_ATTACHMENT_BNRY_CONT"
+      baseColumnNames="BINARY_CONTENT_ID" baseTableName="EMSTR_ATTACHMENT" referencedColumnNames="BINARY_CONTENT_ID"
+      referencedTableName="EMSTR_BINARY_CONTENT" />
+
   </changeSet>
 
 </databaseChangeLog>

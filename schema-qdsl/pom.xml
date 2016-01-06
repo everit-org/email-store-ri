@@ -87,6 +87,9 @@
             </Import-Package>
             <Export-Package>
             </Export-Package>
+            <Require-Capability>
+              liquibase.schema;filter:="(name=org.everit.blobstore.jdbc)"
+            </Require-Capability>
             <Provide-Capability>
               liquibase.schema;name=org.everit.email.store.ri;resource=/META-INF/liquibase/email.store.ri.liquibase.xml;lqmg.config.resource=/META-INF/liquibase/email.store.ri.lqmg.xml
             </Provide-Capability>
@@ -104,27 +107,59 @@
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>build-helper-maven-plugin</artifactId>
-        <version>1.9</version>
-        <executions>
-          <execution>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>add-source</goal>
-            </goals>
-            <configuration>
-              <sources>
-                <source>src/main/generated/java/</source>
-              </sources>
-            </configuration>
-          </execution>
-        </executions>
+        <groupId>org.liquibase</groupId>
+        <artifactId>liquibase-maven-plugin</artifactId>
+        <version>3.0.5</version>
+        <configuration>
+          <changeLogFile>src/main/resources/META-INF/liquibase/email.store.ri.liquibase.xml</changeLogFile>
+          <driver>org.postgresql.Driver</driver>
+          <url>jdbc:postgresql://localhost:5432/emailstore_jdbc</url>
+          <username>test</username>
+          <password>test</password>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>9.4-1201-jdbc41</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+
+      <plugin>
+        <groupId>com.querydsl</groupId>
+        <artifactId>querydsl-maven-plugin</artifactId>
+        <version>4.0.7</version>
+        <configuration>
+          <jdbcDriver>org.postgresql.Driver</jdbcDriver>
+          <jdbcUrl>jdbc:postgresql://localhost:5432/emailstore_jdbc</jdbcUrl>
+          <packageName>org.everit.email.store.ri.schema.qdsl</packageName>
+          <targetFolder>${project.basedir}/target/generated-sources/java</targetFolder>
+          <jdbcUser>test</jdbcUser>
+          <jdbcPassword>test</jdbcPassword>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>9.4-1201-jdbc41</version>
+          </dependency>
+        </dependencies>
       </plugin>
     </plugins>
   </build>
 
   <dependencies>
+<!--     <dependency> -->
+<!--       <groupId>org.everit.blobstore</groupId> -->
+<!--       <artifactId>org.everit.blobstore.jdbc</artifactId> -->
+<!--       <version>1.0.0</version> -->
+<!--     </dependency> -->
+    <dependency>
+      <groupId>com.mysema.querydsl</groupId>
+      <artifactId>querydsl-sql</artifactId>
+      <version>3.7.0</version>
+    </dependency>
   </dependencies>
 
 </project>
