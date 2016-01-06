@@ -1,3 +1,18 @@
+/*
+ * Copyright (C) 2011 Everit Kft. (http://www.everit.org)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.everit.email.store.ri.schema.qdsl;
 
 import static com.mysema.query.types.PathMetadataFactory.*;
@@ -41,7 +56,7 @@ public class QEmailRecipient extends com.mysema.query.sql.RelationalPathBase<QEm
 
     public final NumberPath<Long> emailRecipientId = createNumber("emailRecipientId", Long.class);
 
-    public final NumberPath<Long> index_ = createNumber("index_", Long.class);
+    public final NumberPath<Integer> index_ = createNumber("index_", Integer.class);
 
     public final StringPath recipientType = createString("recipientType");
 
@@ -74,7 +89,7 @@ public class QEmailRecipient extends com.mysema.query.sql.RelationalPathBase<QEm
     public void addMetadata() {
         addMetadata(emailAddressId, ColumnMetadata.named("EMAIL_ADDRESS_ID").ofType(-5).withSize(19).notNull());
         addMetadata(emailRecipientId, ColumnMetadata.named("EMAIL_RECIPIENT_ID").ofType(-5).withSize(19).notNull());
-        addMetadata(index_, ColumnMetadata.named("INDEX_").ofType(-5).withSize(19).notNull());
+        addMetadata(index_, ColumnMetadata.named("INDEX_").ofType(4).withSize(10).notNull());
         addMetadata(recipientType, ColumnMetadata.named("RECIPIENT_TYPE").ofType(12).withSize(255).notNull());
         addMetadata(storedEmailId, ColumnMetadata.named("STORED_EMAIL_ID").ofType(-5).withSize(19).notNull());
     }

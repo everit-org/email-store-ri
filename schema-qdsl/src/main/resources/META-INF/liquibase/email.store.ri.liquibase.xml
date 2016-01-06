@@ -22,8 +22,6 @@
   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.0.xsd
         http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
 
-<!--   <include file="eosgi:org.everit.blobstore.jdbc" /> -->
-
   <changeSet id="1.0.0" author="everit">
 
     <createTable tableName="EMSTR_EMAIL">
@@ -40,12 +38,6 @@
         <constraints nullable="false" />
       </column>
     </createTable>
-<!--     <addForeignKeyConstraint constraintName="FK_EMSTR_EMAIL_BSTR_BLOB_HTML" -->
-<!--       baseColumnNames="HTML_CONTENT_BLOB_ID" baseTableName="EMSTR_EMAIL" referencedColumnNames="BLOB_ID" -->
-<!--       referencedTableName="BLOBSTORE_BLOB" /> -->
-<!--     <addForeignKeyConstraint constraintName="FK_EMSTR_EMAIL_BSTR_BLOB_TEXT" -->
-<!--       baseColumnNames="TEXT_CONTENT_BLOB_ID" baseTableName="EMSTR_EMAIL" referencedColumnNames="BLOB_ID" -->
-<!--       referencedTableName="BLOBSTORE_BLOB" /> -->
 
     <createTable tableName="EMSTR_ADDRESS">
       <column name="EMAIL_ADDRESS_ID" type="BIGINT" autoIncrement="true">
@@ -61,9 +53,6 @@
         <constraints nullable="false" />
       </column>
     </createTable>
-<!--     <addForeignKeyConstraint constraintName="FK_EMSTR_ADDRESS_EMAIL" -->
-<!--       baseColumnNames="STORED_EMAIL_ID" baseTableName="EMSTR_ADDRESS" referencedColumnNames="STORED_EMAIL_ID" -->
-<!--       referencedTableName="EMSTR_EMAIL" /> -->
 
     <createTable tableName="EMSTR_EMAIL_RECIPIENT">
       <column name="EMAIL_RECIPIENT_ID" type="BIGINT" autoIncrement="true">
@@ -72,7 +61,7 @@
       <column name="RECIPIENT_TYPE" type="java.sql.Types.VARCHAR(255)">
         <constraints nullable="false" />
       </column>
-      <column name="INDEX_" type="BIGINT">
+      <column name="INDEX_" type="INTEGER">
         <constraints nullable="false" />
       </column>
       <column name="STORED_EMAIL_ID" type="BIGINT">
@@ -100,9 +89,6 @@
         <constraints nullable="false" />
       </column>
     </createTable>
-<!--     <addForeignKeyConstraint constraintName="FK_EMSTR_BINARY_CONT_BSTR_BLOB" -->
-<!--       baseColumnNames="BLOB_ID" baseTableName="EMSTR_BINARY_CONTENT" referencedColumnNames="BLOB_ID" -->
-<!--       referencedTableName="BLOBSTORE_BLOB" /> -->
 
     <createTable tableName="EMSTR_INLINE_IMAGE">
       <column name="INLINE_IMAGE_ID" type="BIGINT" autoIncrement="true">
@@ -117,7 +103,7 @@
       <column name="STORED_EMAIL_ID" type="BIGINT">
         <constraints nullable="false" />
       </column>
-      <column name="INDEX_" type="BIGINT">
+      <column name="INDEX_" type="INTEGER">
         <constraints nullable="false" />
       </column>
     </createTable>
@@ -138,7 +124,7 @@
       <column name="STORED_EMAIL_ID" type="BIGINT">
         <constraints nullable="false" />
       </column>
-      <column name="INDEX_" type="BIGINT">
+      <column name="INDEX_" type="INTEGER">
         <constraints nullable="false" />
       </column>
     </createTable>
