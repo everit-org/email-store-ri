@@ -83,9 +83,9 @@ public class QAddress extends com.mysema.query.sql.RelationalPathBase<QAddress> 
     }
 
     public void addMetadata() {
-        addMetadata(address, ColumnMetadata.named("ADDRESS").ofType(12).withSize(255).notNull());
+        addMetadata(address, ColumnMetadata.named("ADDRESS").ofType(12).withSize(255));
         addMetadata(emailAddressId, ColumnMetadata.named("EMAIL_ADDRESS_ID").ofType(-5).withSize(19).notNull());
-        addMetadata(personal, ColumnMetadata.named("PERSONAL").ofType(12).withSize(255).notNull());
+        addMetadata(personal, ColumnMetadata.named("PERSONAL").ofType(12).withSize(255));
         addMetadata(storedEmailId, ColumnMetadata.named("STORED_EMAIL_ID").ofType(-5).withSize(19).notNull());
     }
 

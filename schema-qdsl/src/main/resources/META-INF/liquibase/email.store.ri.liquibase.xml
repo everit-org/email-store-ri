@@ -29,13 +29,13 @@
         <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_EMAIL" />
       </column>
       <column name="SUBJECT_" type="java.sql.Types.VARCHAR(255)">
-        <constraints nullable="false" />
+        <constraints nullable="true" />
       </column>
       <column name="HTML_CONTENT_BLOB_ID" type="BIGINT">
-        <constraints nullable="false" />
+        <constraints nullable="true" />
       </column>
       <column name="TEXT_CONTENT_BLOB_ID" type="BIGINT">
-        <constraints nullable="false" />
+        <constraints nullable="true" />
       </column>
     </createTable>
 
@@ -44,10 +44,10 @@
         <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_ADDRESS" />
       </column>
       <column name="ADDRESS" type="java.sql.Types.VARCHAR(255)">
-        <constraints nullable="false" />
+        <constraints nullable="true" />
       </column>
       <column name="PERSONAL" type="java.sql.Types.VARCHAR(255)">
-        <constraints nullable="false" />
+        <constraints nullable="true" />
       </column>
       <column name="STORED_EMAIL_ID" type="BIGINT">
         <constraints nullable="false" />
@@ -83,10 +83,13 @@
         <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_BINARY_CONTENT" />
       </column>
       <column name="NAME_" type="java.sql.Types.VARCHAR(255)">
-        <constraints nullable="false" />
+        <constraints nullable="true" />
+      </column>
+       <column name="CONTENT_TYPE_" type="java.sql.Types.VARCHAR(255)">
+        <constraints nullable="true" />
       </column>
       <column name="BLOB_ID" type="BIGINT">
-        <constraints nullable="false" />
+        <constraints nullable="true" />
       </column>
     </createTable>
 
@@ -95,7 +98,7 @@
         <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_INLINE_IMAGE" />
       </column>
       <column name="CID_" type="java.sql.Types.VARCHAR(255)">
-        <constraints nullable="false" />
+        <constraints nullable="true" />
       </column>
       <column name="BINARY_CONTENT_ID" type="BIGINT">
         <constraints nullable="false" />

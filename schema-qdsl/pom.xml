@@ -33,7 +33,7 @@
 
   <packaging>bundle</packaging>
 
-  <name>Everit - Email Store RI</name>
+  <name>Everit - Email Store RI Schema</name>
   <description>Reference implementation of the Email Store API</description>
 
   <properties>
@@ -105,6 +105,24 @@
           <capability>org.everit.email.store.ri</capability>
           <packages>org.everit.email.store.ri.schema.qdsl</packages>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>1.9</version>
+        <executions>
+          <execution>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>add-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>src/main/generated/java/</source>
+              </sources>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

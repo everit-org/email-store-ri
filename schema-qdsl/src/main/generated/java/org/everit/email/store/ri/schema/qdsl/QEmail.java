@@ -87,10 +87,10 @@ public class QEmail extends com.mysema.query.sql.RelationalPathBase<QEmail> {
     }
 
     public void addMetadata() {
-        addMetadata(htmlContentBlobId, ColumnMetadata.named("HTML_CONTENT_BLOB_ID").ofType(-5).withSize(19).notNull());
+        addMetadata(htmlContentBlobId, ColumnMetadata.named("HTML_CONTENT_BLOB_ID").ofType(-5).withSize(19));
         addMetadata(storedEmailId, ColumnMetadata.named("STORED_EMAIL_ID").ofType(-5).withSize(19).notNull());
-        addMetadata(subject_, ColumnMetadata.named("SUBJECT_").ofType(12).withSize(255).notNull());
-        addMetadata(textContentBlobId, ColumnMetadata.named("TEXT_CONTENT_BLOB_ID").ofType(-5).withSize(19).notNull());
+        addMetadata(subject_, ColumnMetadata.named("SUBJECT_").ofType(12).withSize(255));
+        addMetadata(textContentBlobId, ColumnMetadata.named("TEXT_CONTENT_BLOB_ID").ofType(-5).withSize(19));
     }
 
 }
