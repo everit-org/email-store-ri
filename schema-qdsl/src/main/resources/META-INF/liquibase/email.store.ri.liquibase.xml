@@ -31,13 +31,37 @@
       <column name="SUBJECT_" type="java.sql.Types.VARCHAR(255)">
         <constraints nullable="true" />
       </column>
-      <column name="HTML_CONTENT_BLOB_ID" type="BIGINT">
+    </createTable>
+
+    <createTable tableName="EMSTR_TEXT_CONTENT">
+      <column name="TEXT_CONTENT_ID" type="BIGINT" autoIncrement="true">
+        <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_TEXT_CONTENT" />
+      </column>
+      <column name="BLOB_ID" type="BIGINT">
         <constraints nullable="true" />
       </column>
-      <column name="TEXT_CONTENT_BLOB_ID" type="BIGINT">
-        <constraints nullable="true" />
+      <column name="STORED_EMAIL_ID" type="BIGINT">
+        <constraints nullable="false" />
       </column>
     </createTable>
+    <addForeignKeyConstraint constraintName="FK_EMSTR_TEXT_CONTENT_EMAIL"
+      baseColumnNames="STORED_EMAIL_ID" baseTableName="EMSTR_TEXT_CONTENT" referencedColumnNames="STORED_EMAIL_ID"
+      referencedTableName="EMSTR_EMAIL" />
+
+    <createTable tableName="EMSTR_HTML_CONTENT">
+      <column name="HTML_CONTENT_ID" type="BIGINT" autoIncrement="true">
+        <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_HTML_CONTENT" />
+      </column>
+      <column name="BLOB_ID" type="BIGINT">
+        <constraints nullable="true" />
+      </column>
+      <column name="STORED_EMAIL_ID" type="BIGINT">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+    <addForeignKeyConstraint constraintName="FK_EMSTR_HTML_CONTENT_EMAIL"
+      baseColumnNames="STORED_EMAIL_ID" baseTableName="EMSTR_HTML_CONTENT" referencedColumnNames="STORED_EMAIL_ID"
+      referencedTableName="EMSTR_EMAIL" />
 
     <createTable tableName="EMSTR_ADDRESS">
       <column name="EMAIL_ADDRESS_ID" type="BIGINT" autoIncrement="true">
@@ -48,9 +72,6 @@
       </column>
       <column name="PERSONAL" type="java.sql.Types.VARCHAR(255)">
         <constraints nullable="true" />
-      </column>
-      <column name="STORED_EMAIL_ID" type="BIGINT">
-        <constraints nullable="false" />
       </column>
     </createTable>
 
@@ -85,7 +106,7 @@
       <column name="NAME_" type="java.sql.Types.VARCHAR(255)">
         <constraints nullable="true" />
       </column>
-       <column name="CONTENT_TYPE_" type="java.sql.Types.VARCHAR(255)">
+      <column name="CONTENT_TYPE_" type="java.sql.Types.VARCHAR(255)">
         <constraints nullable="true" />
       </column>
       <column name="BLOB_ID" type="BIGINT">
@@ -101,28 +122,29 @@
         <constraints nullable="true" />
       </column>
       <column name="BINARY_CONTENT_ID" type="BIGINT">
-        <constraints nullable="false" />
-      </column>
-      <column name="STORED_EMAIL_ID" type="BIGINT">
-        <constraints nullable="false" />
+        <constraints nullable="true" />
       </column>
       <column name="INDEX_" type="INTEGER">
         <constraints nullable="false" />
       </column>
+      <column name="HTML_CONTENT_ID" type="BIGINT">
+        <constraints nullable="false" />
+      </column>
     </createTable>
-    <addForeignKeyConstraint constraintName="FK_EMSTR_INLINE_IMAGE_EMAIL"
-      baseColumnNames="STORED_EMAIL_ID" baseTableName="EMSTR_INLINE_IMAGE" referencedColumnNames="STORED_EMAIL_ID"
-      referencedTableName="EMSTR_EMAIL" />
     <addForeignKeyConstraint constraintName="FK_EMSTR_INLINE_IMG_BNRY_CONT"
       baseColumnNames="BINARY_CONTENT_ID" baseTableName="EMSTR_INLINE_IMAGE" referencedColumnNames="BINARY_CONTENT_ID"
       referencedTableName="EMSTR_BINARY_CONTENT" />
+    <addForeignKeyConstraint constraintName="FK_EMSTR_INLINE_IMG_HTML_CONT"
+      baseColumnNames="HTML_CONTENT_ID" baseTableName="EMSTR_INLINE_IMAGE" referencedColumnNames="HTML_CONTENT_ID"
+      referencedTableName="EMSTR_HTML_CONTENT" />
+
 
     <createTable tableName="EMSTR_ATTACHMENT">
       <column name="ATTACHMENT_ID" type="BIGINT" autoIncrement="true">
         <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_ATTACHMENT" />
       </column>
       <column name="BINARY_CONTENT_ID" type="BIGINT">
-        <constraints nullable="false" />
+        <constraints nullable="true" />
       </column>
       <column name="STORED_EMAIL_ID" type="BIGINT">
         <constraints nullable="false" />

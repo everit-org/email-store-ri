@@ -56,8 +56,6 @@ public class QAddress extends com.mysema.query.sql.RelationalPathBase<QAddress> 
 
     public final StringPath personal = createString("personal");
 
-    public final NumberPath<Long> storedEmailId = createNumber("storedEmailId", Long.class);
-
     public final PrimaryKeys pk = new PrimaryKeys();
 
     public final ForeignKeys fk = new ForeignKeys();
@@ -86,7 +84,6 @@ public class QAddress extends com.mysema.query.sql.RelationalPathBase<QAddress> 
         addMetadata(address, ColumnMetadata.named("ADDRESS").ofType(12).withSize(255));
         addMetadata(emailAddressId, ColumnMetadata.named("EMAIL_ADDRESS_ID").ofType(-5).withSize(19).notNull());
         addMetadata(personal, ColumnMetadata.named("PERSONAL").ofType(12).withSize(255));
-        addMetadata(storedEmailId, ColumnMetadata.named("STORED_EMAIL_ID").ofType(-5).withSize(19).notNull());
     }
 
 }

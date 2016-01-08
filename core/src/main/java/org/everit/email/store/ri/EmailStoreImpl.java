@@ -43,7 +43,9 @@ import org.everit.email.store.ri.schema.qdsl.QAttachment;
 import org.everit.email.store.ri.schema.qdsl.QBinaryContent;
 import org.everit.email.store.ri.schema.qdsl.QEmail;
 import org.everit.email.store.ri.schema.qdsl.QEmailRecipient;
+import org.everit.email.store.ri.schema.qdsl.QHtmlContent;
 import org.everit.email.store.ri.schema.qdsl.QInlineImage;
+import org.everit.email.store.ri.schema.qdsl.QTextContent;
 import org.everit.persistence.querydsl.support.QuerydslSupport;
 import org.everit.transaction.propagator.TransactionPropagator;
 
@@ -57,6 +59,9 @@ import com.mysema.query.types.Projections;
  */
 public class EmailStoreImpl implements EmailStore {
 
+  /**
+   * Simple implementation of {@link InputStreamSupplier}.
+   */
   private static class InputStreamSupplierImpl implements InputStreamSupplier {
 
     private final byte[] content;
@@ -72,6 +77,9 @@ public class EmailStoreImpl implements EmailStore {
 
   }
 
+  /**
+   * Types of recipient.
+   */
   private enum RecipientType {
     BCC, CC, FROM, TO
   }
@@ -86,6 +94,16 @@ public class EmailStoreImpl implements EmailStore {
 
   private final TransactionPropagator transactionPropagator;
 
+  /**
+   * Simple constructor.
+   *
+   * @param querydslSupport
+   *          a {@link QuerydslSupport} instance.
+   * @param transactionPropagator
+   *          a {@link TransactionPropagator} instance.
+   * @param blobstore
+   *          a {@link Blobstore} instance.
+   */
   public EmailStoreImpl(final QuerydslSupport querydslSupport,
       final TransactionPropagator transactionPropagator, final Blobstore blobstore) {
     Objects.requireNonNull(querydslSupport, "The querydslSupport cannot be null!");
@@ -97,9 +115,11 @@ public class EmailStoreImpl implements EmailStore {
     this.blobstore = blobstore;
   }
 
-  private long createBlob(final byte[] contentBytes) {
+  private Long createBlob(final byte[] contentBytes) {
+    if ((contentBytes == null) || (contentBytes.length < 1)) {
+      return null;
+    }
     try (BlobAccessor blobAccessor = blobstore.createBlob()) {
-      // Write the data
       blobAccessor.write(contentBytes, 0, contentBytes.length);
       return blobAccessor.getBlobId();
     }
@@ -112,16 +132,18 @@ public class EmailStoreImpl implements EmailStore {
   }
 
   private byte[] getBytes(final String content) {
+    if (content == null) {
+      return new byte[0];
+    }
     return content.getBytes(StandardCharsets.UTF_8);
   }
 
-  private long insertAddress(final EmailAddress emailAddress, final long storedEmailId) {
+  private long insertAddress(final EmailAddress emailAddress) {
     return querydslSupport.execute((connection, configuration) -> {
       QAddress qAddress = QAddress.address1;
       return new SQLInsertClause(connection, configuration, qAddress)
           .set(qAddress.address, emailAddress.address)
           .set(qAddress.personal, emailAddress.personal)
-          .set(qAddress.storedEmailId, storedEmailId)
           .executeWithKey(qAddress.emailAddressId);
     });
   }
@@ -179,42 +201,48 @@ public class EmailStoreImpl implements EmailStore {
     });
   }
 
-  private long insertEmail(final String subject, final String htmlContent,
-      final String textContent) {
+  private long insertEmail(final String subject) {
     return querydslSupport.execute((connection, configuration) -> {
       QEmail qEmail = QEmail.email;
-      SQLInsertClause insertClause = new SQLInsertClause(connection, configuration, qEmail)
-          .set(qEmail.subject_, subject);
-
-      if (htmlContent != null) {
-        long htmlContentBlobId = createBlob(getBytes(htmlContent));
-        insertClause = insertClause.set(qEmail.htmlContentBlobId, htmlContentBlobId);
-      }
-
-      if (textContent != null) {
-        long textContentBlobId = createBlob(getBytes(textContent));
-        insertClause = insertClause.set(qEmail.textContentBlobId, textContentBlobId);
-      }
-
-      return insertClause.executeWithKey(qEmail.storedEmailId);
+      return new SQLInsertClause(connection, configuration, qEmail)
+          .set(qEmail.subject_, subject)
+          .executeWithKey(qEmail.storedEmailId);
     });
   }
 
-  private void insertInlineImages(final HtmlContent htmlContent, final long storedEmailId) {
-    if ((htmlContent == null) || (htmlContent.inlineImageByCidMap == null)) {
+  private void insertHtmlContent(final HtmlContent htmlContent, final long storedEmailId) {
+    if (htmlContent == null) {
+      return;
+    }
+
+    Long htmlContentBlobId = createBlob(getBytes(htmlContent.html));
+    Long htmlContentId = querydslSupport.execute((connection, configuration) -> {
+      QHtmlContent qHtmlContent = QHtmlContent.htmlContent;
+      return new SQLInsertClause(connection, configuration, qHtmlContent)
+          .set(qHtmlContent.blobId, htmlContentBlobId)
+          .set(qHtmlContent.storedEmailId, storedEmailId)
+          .executeWithKey(qHtmlContent.htmlContentId);
+    });
+    insertInlineImages(htmlContent.inlineImageByCidMap, htmlContentId);
+  }
+
+  private void insertInlineImages(final Map<String, Attachment> inlineImageByCidMap,
+      final long htmlContentId) {
+    if (inlineImageByCidMap == null) {
       return;
     }
 
     querydslSupport.execute((connection, configuration) -> {
       int index = START_INDEX;
-      for (Map.Entry<String, Attachment> entry : htmlContent.inlineImageByCidMap.entrySet()) {
+      for (Map.Entry<String, Attachment> entry : inlineImageByCidMap.entrySet()) {
         Long binaryContentId = insertBinaryContent(entry.getValue());
         QInlineImage qInlineImage = QInlineImage.inlineImage;
         new SQLInsertClause(connection, configuration, qInlineImage)
             .set(qInlineImage.cid_, entry.getKey())
-            .set(qInlineImage.storedEmailId, storedEmailId)
             .set(qInlineImage.binaryContentId, binaryContentId)
-            .set(qInlineImage.index_, index++);
+            .set(qInlineImage.index_, index++)
+            .set(qInlineImage.htmlContentId, htmlContentId)
+            .executeWithKey(qInlineImage.inlineImageId);
       }
       return null;
     });
@@ -222,7 +250,7 @@ public class EmailStoreImpl implements EmailStore {
 
   private void insertRecipient(final EmailAddress emailAddress, final RecipientType recipientType,
       final int index, final long storedEmailId) {
-    long emailAddressId = insertAddress(emailAddress, storedEmailId);
+    long emailAddressId = insertAddress(emailAddress);
 
     querydslSupport.execute((connection, configuration) -> {
       QEmailRecipient qEmailRecipient = QEmailRecipient.emailRecipient;
@@ -247,6 +275,21 @@ public class EmailStoreImpl implements EmailStore {
     }
   }
 
+  private void insertTextContent(final String textContent, final long storedEmailId) {
+    if (textContent == null) {
+      return;
+    }
+
+    Long textContentBlobId = createBlob(getBytes(textContent));
+    querydslSupport.execute((connection, configuration) -> {
+      QTextContent qTextContent = QTextContent.textContent;
+      return new SQLInsertClause(connection, configuration, qTextContent)
+          .set(qTextContent.storedEmailId, storedEmailId)
+          .set(qTextContent.blobId, textContentBlobId)
+          .executeWithKey(qTextContent.textContentId);
+    });
+  }
+
   @Override
   public Email read(final long storedEmailId) {
     return transactionPropagator.required(() -> {
@@ -255,9 +298,8 @@ public class EmailStoreImpl implements EmailStore {
         return new SQLQuery(connection, configuration)
             .from(qEmail)
             .where(qEmail.storedEmailId.eq(storedEmailId))
-            .uniqueResult(qEmail.htmlContentBlobId,
-                qEmail.subject_,
-                qEmail.textContentBlobId);
+            .uniqueResult(qEmail.subject_,
+                qEmail.storedEmailId);
       });
 
       if (emailTuple == null) {
@@ -267,51 +309,22 @@ public class EmailStoreImpl implements EmailStore {
       Email email = new Email()
           .withSubject(emailTuple.get(qEmail.subject_));
 
-      byte[] textContentBytes = readBlob(emailTuple.get(qEmail.textContentBlobId));
-      if (textContentBytes != null) {
-        email = email.withTextContent(new String(textContentBytes, StandardCharsets.UTF_8));
-      }
-      HtmlContent htmlContent = new HtmlContent();
-      byte[] htmlContentBytes = readBlob(emailTuple.get(qEmail.htmlContentBlobId));
-      if (htmlContentBytes != null) {
-        htmlContent.withHtml(new String(htmlContentBytes, StandardCharsets.UTF_8));
-      }
-      Map<String, Attachment> inlineImageByCidMap = readInlineImages(storedEmailId);
-      htmlContent.withInlineImageByCidMap(inlineImageByCidMap);
+      email.withTextContent(readTextContent(storedEmailId));
 
+      HtmlContent htmlContent = readHtmlContent(storedEmailId);
       email = email.withHtmlContent(htmlContent);
 
       Collection<Attachment> attachments = readAttachments(storedEmailId);
-
       email = email.withAttachments(attachments);
 
-      List<EmailAddress> fromAddress = readEmailAddress(storedEmailId, RecipientType.FROM);
-      email = email.withFrom(fromAddress.isEmpty() ? null : fromAddress.get(0));
+      EmailAddress from = readFrom(storedEmailId);
+      email = email.withFrom(from);
 
-      Recipients recipients = new Recipients();
-      List<EmailAddress> to = readEmailAddress(storedEmailId, RecipientType.TO);
-      recipients = recipients.withTo(to);
-
-      List<EmailAddress> cc = readEmailAddress(storedEmailId, RecipientType.CC);
-      recipients = recipients.withCc(cc);
-
-      List<EmailAddress> bcc = readEmailAddress(storedEmailId, RecipientType.BCC);
-      recipients = recipients.withBcc(bcc);
-
-      email = email.withRecipients(recipients);
+      Recipients recipients = readRecipients(storedEmailId);
+      email.withRecipients(recipients);
 
       return email;
     });
-    // return querydslSupport.execute((connection, configuration) -> {
-    // QEmail qEmail = QEmail.email;
-    // return new SQLQuery(connection, configuration)
-    // .from(qEmail)
-    // .where(qEmail.storedEmailId.eq(storedEmailId))
-    // .uniqueResult(
-    // Projections.fields(Email.class,
-    // qEmail.subject_.as("subject"),
-    // qEmail.));
-    // });
   }
 
   private Collection<Attachment> readAttachments(final long storedEmailId) {
@@ -344,7 +357,7 @@ public class EmailStoreImpl implements EmailStore {
 
   private byte[] readBlob(final Long blobId) {
     if (blobId == null) {
-      return null;
+      return new byte[0];
     }
 
     try (BlobReader readBlob = blobstore.readBlob(blobId)) {
@@ -372,14 +385,47 @@ public class EmailStoreImpl implements EmailStore {
     });
   }
 
-  private Map<String, Attachment> readInlineImages(final long storedEmailId) {
+  private EmailAddress readFrom(final long storedEmailId) {
+    List<EmailAddress> fromAddress = readEmailAddress(storedEmailId, RecipientType.FROM);
+    return fromAddress.isEmpty() ? null : fromAddress.get(0);
+  }
+
+  private HtmlContent readHtmlContent(final long storedEmailId) {
+    QHtmlContent qHtmlContent = QHtmlContent.htmlContent;
+    Tuple htmlContentTuple = querydslSupport.execute((connection, configuration) -> {
+      return new SQLQuery(connection, configuration)
+          .from(qHtmlContent)
+          .where(qHtmlContent.storedEmailId.eq(storedEmailId))
+          .uniqueResult(qHtmlContent.blobId,
+              qHtmlContent.htmlContentId);
+    });
+
+    if (htmlContentTuple == null) {
+      return null;
+    }
+
+    HtmlContent htmlContent = new HtmlContent();
+    byte[] htmlContentBytes = readBlob(htmlContentTuple.get(qHtmlContent.blobId));
+    if (htmlContentBytes.length > 0) {
+      htmlContent.withHtml(new String(htmlContentBytes, StandardCharsets.UTF_8));
+    }
+    Map<String, Attachment> inlineImageByCidMap =
+        readInlineImages(htmlContentTuple.get(qHtmlContent.htmlContentId));
+    if (!inlineImageByCidMap.isEmpty()) {
+      htmlContent.withInlineImageByCidMap(inlineImageByCidMap);
+    }
+    return htmlContent;
+  }
+
+  private Map<String, Attachment> readInlineImages(final long htmlContentId) {
     QInlineImage qInlineImage = QInlineImage.inlineImage;
     QBinaryContent qBinaryContent = QBinaryContent.binaryContent;
     List<Tuple> inlineImageTuples = querydslSupport.execute((connection, configuration) -> {
       return new SQLQuery(connection, configuration)
           .from(qInlineImage)
-          .join(qBinaryContent).on(qInlineImage.binaryContentId.eq(qBinaryContent.binaryContentId))
-          .where(qInlineImage.storedEmailId.eq(storedEmailId))
+          .leftJoin(qBinaryContent)
+          .on(qBinaryContent.binaryContentId.eq(qInlineImage.binaryContentId))
+          .where(qInlineImage.htmlContentId.eq(htmlContentId))
           .orderBy(qInlineImage.index_.asc())
           .list(qBinaryContent.blobId,
               qBinaryContent.contentType_,
@@ -401,20 +447,54 @@ public class EmailStoreImpl implements EmailStore {
     return inlineImageByCidMap;
   }
 
+  private Recipients readRecipients(final long storedEmailId) {
+    Recipients recipients = new Recipients();
+    List<EmailAddress> to = readEmailAddress(storedEmailId, RecipientType.TO);
+    if (!to.isEmpty()) {
+      recipients = recipients.withTo(to);
+    }
+
+    List<EmailAddress> cc = readEmailAddress(storedEmailId, RecipientType.CC);
+    if (!cc.isEmpty()) {
+      recipients = recipients.withCc(cc);
+    }
+
+    List<EmailAddress> bcc = readEmailAddress(storedEmailId, RecipientType.BCC);
+    if (!bcc.isEmpty()) {
+      recipients = recipients.withBcc(bcc);
+    }
+
+    return recipients;
+  }
+
+  private String readTextContent(final long storedEmailId) {
+    Long textContentBlobId = querydslSupport.execute((connection, configuration) -> {
+      QTextContent qTextContent = QTextContent.textContent;
+      return new SQLQuery(connection, configuration)
+          .from(qTextContent)
+          .where(qTextContent.storedEmailId.eq(storedEmailId))
+          .uniqueResult(qTextContent.blobId);
+    });
+
+    byte[] textContentBytes = readBlob(textContentBlobId);
+    if (textContentBytes.length > 0) {
+      return new String(textContentBytes, StandardCharsets.UTF_8);
+    }
+    return null;
+  }
+
   @Override
   public long save(final Email email) {
     if (email == null) {
-      // FIXME add java doc the parameter cannot be null, Create exception?
-      throw new RuntimeException("The email cannot be null!");
+      throw new NullPointerException("The email cannot be null!");
     }
 
     return transactionPropagator.required(() -> {
-      long storedEmailId = insertEmail(email.subject,
-          email.htmlContent != null ? email.htmlContent.html : null,
-          email.textContent);
-      saveEmailRecipients(email.from, email.recipients, storedEmailId);
-      insertInlineImages(email.htmlContent, storedEmailId);
+      long storedEmailId = insertEmail(email.subject);
+      insertTextContent(email.textContent, storedEmailId);
+      insertHtmlContent(email.htmlContent, storedEmailId);
       insertAttachments(email.attachments, storedEmailId);
+      saveEmailRecipients(email.from, email.recipients, storedEmailId);
       return storedEmailId;
     });
   }

@@ -40,6 +40,7 @@ import org.everit.persistence.querydsl.support.ri.QuerydslSupportImpl;
 import org.everit.transaction.propagator.TransactionPropagator;
 import org.everit.transaction.propagator.jta.JTATransactionPropagator;
 import org.h2.jdbcx.JdbcDataSource;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,22 +61,50 @@ public class EmailStoreTest {
 
     private final ClassLoader classLoader;
 
-    private final String fileName;
+    private final String resourceName;
 
-    DummyInputStreamSupplier(final ClassLoader classLoader, final String fileName) {
-      this.fileName = fileName;
+    DummyInputStreamSupplier(final ClassLoader classLoader, final String resourceName) {
+      this.resourceName = resourceName;
       this.classLoader = classLoader;
     }
 
     @Override
     public InputStream getStream() {
-      return classLoader.getResourceAsStream(fileName);
+      return classLoader.getResourceAsStream(resourceName);
     }
   }
 
-  private static final String TEST_CID = "test-cid";
+  private static final String DEFAULT_BCC_ADDRESS = "test-address-bcc";
 
-  private static final String TEST_SUBJECT = "test-subject";
+  private static final String DEFAULT_BCC_PERSON = "test-person-bcc";
+
+  private static final String DEFAULT_CC_ADDRESS = "test-address-cc";
+
+  private static final String DEFAULT_CC_PERSON = "test-person-cc";
+
+  private static final String DEFAULT_CID = "test-cid";
+
+  private static final String DEFAULT_CONTENT_TYPE_IMAGE = "image";
+
+  private static final String DEFAULT_CONTENT_TYPE_TXT = "txt";
+
+  private static final String DEFAULT_FROM_ADDRESS = "test-address-from";
+
+  private static final String DEFAULT_FROM_PERSON = "test-person-from";
+
+  private static final String DEFAULT_HTML = "test-html";
+
+  private static final String DEFAULT_NAME_SAMPLE_IMG_NAME = "test-sample-img-name";
+
+  private static final String DEFAULT_NAME_SAMPLE_TXT_NAME = "test-sample-txt-name";
+
+  private static final String DEFAULT_SUBJECT = "test-subject";
+
+  private static final String DEFAULT_TEXT_CONTENT = "test-text-content";
+
+  private static final String DEFAULT_TO_ADDRESS = "test-address-to";
+
+  private static final String DEFAULT_TO_PERSON = "test-person-to";
 
   private Blobstore blobstore;
 
@@ -84,6 +113,17 @@ public class EmailStoreTest {
   private BasicManagedDataSource managedDataSource = null;
 
   private TransactionPropagator transactionPropagator;
+
+  @After
+  public void after() {
+    if (managedDataSource != null) {
+      try {
+        managedDataSource.close();
+      } catch (SQLException e) {
+        throw new RuntimeException(e);
+      }
+    }
+  }
 
   @Before
   public void before() {
@@ -120,6 +160,15 @@ public class EmailStoreTest {
     emailStore = new EmailStoreImpl(querydslSupport, transactionPropagator, blobstore);
   }
 
+  private Attachment createAttachment(final String contentType, final String name,
+      final String resourceName) {
+    return new Attachment()
+        .withContentType(contentType)
+        .withName(name)
+        .withInputStreamSupplier(
+            new DummyInputStreamSupplier(getClass().getClassLoader(), resourceName));
+  }
+
   private EmailAddress createEmailAddress(final String address, final String person) {
     return new EmailAddress()
         .withAddress(address)
@@ -137,46 +186,39 @@ public class EmailStoreTest {
   private XADataSource createXADatasource() {
     JdbcDataSource xaDatasource = new JdbcDataSource();
     xaDatasource.setURL("jdbc:h2:mem:test");
-    xaDatasource.setUser("sa");
-    xaDatasource.setPassword("sa");
+    // xaDatasource.setURL("jdbc:h2:tcp://localhost:9092/~/test");
+    xaDatasource.setUser("test");
+    xaDatasource.setPassword("test");
     return xaDatasource;
   }
 
   private Email getDefaultFullEmail() {
     HashMap<String, Attachment> inlineImageByCidMap = new HashMap<String, Attachment>();
-    Attachment sampleImgAttachment = new Attachment()
-        .withContentType("image")
-        .withName("test-sample-img-name")
-        .withInputStreamSupplier(
-            new DummyInputStreamSupplier(getClass().getClassLoader(), "sample.png"));
-    inlineImageByCidMap.put(TEST_CID, sampleImgAttachment);
+    inlineImageByCidMap.put(DEFAULT_CID,
+        createAttachment(DEFAULT_CONTENT_TYPE_IMAGE, DEFAULT_NAME_SAMPLE_IMG_NAME, "sample.png"));
 
-    Attachment sampleTxtAttachment = new Attachment()
-        .withContentType("txt")
-        .withName("test-sample-txt-name")
-        .withInputStreamSupplier(
-            new DummyInputStreamSupplier(getClass().getClassLoader(), "sample.txt"));
     Collection<Attachment> attachments = new ArrayList<>();
-    attachments.add(sampleTxtAttachment);
+    attachments.add(
+        createAttachment(DEFAULT_CONTENT_TYPE_TXT, DEFAULT_NAME_SAMPLE_TXT_NAME, "sample.txt"));
 
-    EmailAddress to = createEmailAddress("test-address-to", "test-person-to");
+    EmailAddress to = createEmailAddress(DEFAULT_TO_ADDRESS, DEFAULT_TO_PERSON);
     Collection<EmailAddress> collectionTo = new ArrayList<>();
     collectionTo.add(to);
 
-    EmailAddress cc = createEmailAddress("test-address-cc", "test-person-cc");
+    EmailAddress cc = createEmailAddress(DEFAULT_CC_ADDRESS, DEFAULT_CC_PERSON);
     Collection<EmailAddress> collectionCc = new ArrayList<>();
     collectionCc.add(cc);
 
-    EmailAddress bcc = createEmailAddress("test-address-bcc", "test-person-bcc");
+    EmailAddress bcc = createEmailAddress(DEFAULT_BCC_ADDRESS, DEFAULT_BCC_PERSON);
     Collection<EmailAddress> collectionBcc = new ArrayList<>();
     collectionBcc.add(bcc);
 
     return new Email()
-        .withSubject(TEST_SUBJECT)
-        .withTextContent("test-text-content")
-        .withFrom(createEmailAddress("test-address-from", "test-person-from"))
+        .withSubject(DEFAULT_SUBJECT)
+        .withTextContent(DEFAULT_TEXT_CONTENT)
+        .withFrom(createEmailAddress(DEFAULT_FROM_ADDRESS, DEFAULT_FROM_PERSON))
         .withHtmlContent(new HtmlContent()
-            .withHtml("test-html")
+            .withHtml(DEFAULT_HTML)
             .withInlineImageByCidMap(inlineImageByCidMap))
         .withAttachments(attachments)
         .withRecipients(new Recipients()
@@ -185,42 +227,143 @@ public class EmailStoreTest {
             .withBcc(collectionBcc));
   }
 
+  private void testReadComplexEmail() {
+    Email saveEmail = getDefaultFullEmail();
+    saveEmail.attachments.add(createAttachment("second", "second", "sample.txt"));
+    saveEmail.recipients.to.add(createEmailAddress("second-to", "second-to"));
+    saveEmail.recipients.to.add(createEmailAddress("third-to", "third-to"));
+    saveEmail.recipients.cc.add(createEmailAddress("second-cc", "second-cc"));
+    saveEmail.recipients.bcc.clear();
+    saveEmail.htmlContent.inlineImageByCidMap.put("second-cid",
+        createAttachment("second", "second", "sample.png"));
+    saveEmail.withFrom(null);
+    long storedEmailId = emailStore.save(saveEmail);
+    Email readEmail = emailStore.read(storedEmailId);
+    Assert.assertEquals(2, readEmail.attachments.size());
+    List<Attachment> attachments = (List<Attachment>) readEmail.attachments;
+    Attachment attachment = attachments.get(1);
+    Assert.assertEquals("second", attachment.contentType);
+    Assert.assertEquals("second", attachment.name);
+
+    Assert.assertNull(DEFAULT_FROM_ADDRESS, readEmail.from);
+
+    Assert.assertEquals(2, readEmail.htmlContent.inlineImageByCidMap.size());
+
+    Assert.assertEquals(3, readEmail.recipients.to.size());
+    List<EmailAddress> toAddresses = (List<EmailAddress>) readEmail.recipients.to;
+    EmailAddress to2 = toAddresses.get(1);
+    Assert.assertEquals("second-to", to2.address);
+    Assert.assertEquals("second-to", to2.personal);
+    EmailAddress to3 = toAddresses.get(2);
+    Assert.assertEquals("third-to", to3.address);
+    Assert.assertEquals("third-to", to3.personal);
+
+    Assert.assertEquals(2, readEmail.recipients.cc.size());
+    List<EmailAddress> ccAddresses = (List<EmailAddress>) readEmail.recipients.cc;
+    EmailAddress cc = ccAddresses.get(1);
+    Assert.assertEquals("second-cc", cc.address);
+    Assert.assertEquals("second-cc", cc.personal);
+
+    Assert.assertEquals(0, readEmail.recipients.bcc.size());
+  }
+
+  private void testReadDefaultEmail() {
+    long storedEmailId = emailStore.save(getDefaultFullEmail());
+    Email email = emailStore.read(storedEmailId);
+
+    Assert.assertEquals(1, email.attachments.size());
+    List<Attachment> attachments = (List<Attachment>) email.attachments;
+    Attachment attachment = attachments.get(0);
+    Assert.assertEquals(DEFAULT_CONTENT_TYPE_TXT, attachment.contentType);
+    Assert.assertEquals(DEFAULT_NAME_SAMPLE_TXT_NAME, attachment.name);
+    Assert.assertNotNull(attachment.inputStreamSupplier);
+
+    Assert.assertEquals(DEFAULT_FROM_ADDRESS, email.from.address);
+    Assert.assertEquals(DEFAULT_FROM_PERSON, email.from.personal);
+
+    Assert.assertEquals(DEFAULT_HTML, email.htmlContent.html);
+    Assert.assertEquals(1, email.htmlContent.inlineImageByCidMap.size());
+    Attachment inlineImageAttachment = email.htmlContent.inlineImageByCidMap.get(DEFAULT_CID);
+    Assert.assertEquals(DEFAULT_CONTENT_TYPE_IMAGE, inlineImageAttachment.contentType);
+    Assert.assertEquals(DEFAULT_NAME_SAMPLE_IMG_NAME, inlineImageAttachment.name);
+    Assert.assertNotNull(inlineImageAttachment.inputStreamSupplier);
+
+    Assert.assertEquals(1, email.recipients.to.size());
+    List<EmailAddress> toAddresses = (List<EmailAddress>) email.recipients.to;
+    EmailAddress to = toAddresses.get(0);
+    Assert.assertEquals(DEFAULT_TO_ADDRESS, to.address);
+    Assert.assertEquals(DEFAULT_TO_PERSON, to.personal);
+
+    Assert.assertEquals(1, email.recipients.cc.size());
+    List<EmailAddress> ccAddresses = (List<EmailAddress>) email.recipients.cc;
+    EmailAddress cc = ccAddresses.get(0);
+    Assert.assertEquals(DEFAULT_CC_ADDRESS, cc.address);
+    Assert.assertEquals(DEFAULT_CC_PERSON, cc.personal);
+
+    Assert.assertEquals(1, email.recipients.bcc.size());
+    List<EmailAddress> bccAddresses = (List<EmailAddress>) email.recipients.bcc;
+    EmailAddress bcc = bccAddresses.get(0);
+    Assert.assertEquals(DEFAULT_BCC_ADDRESS, bcc.address);
+    Assert.assertEquals(DEFAULT_BCC_PERSON, bcc.personal);
+
+    Assert.assertEquals(DEFAULT_SUBJECT, email.subject);
+
+    Assert.assertEquals(DEFAULT_TEXT_CONTENT, email.textContent);
+  }
+
   @Test
   public void testReadEmail() {
-    long storedEmailId = emailStore.save(getDefaultFullEmail());
-    Email read = emailStore.read(storedEmailId);
-    Assert.assertEquals(TEST_SUBJECT, read.subject);
+    testReadDefaultEmail();
+    testReadComplexEmail();
   }
 
   private void testSaveAttachments() {
-    emailStore.save(getDefaultFullEmail().withAttachments(null));
+    long storedEmailId = emailStore.save(getDefaultFullEmail().withAttachments(null));
+    Email readEmail = emailStore.read(storedEmailId);
+    Assert.assertTrue(readEmail.attachments.isEmpty());
 
     Email email = getDefaultFullEmail();
     List<Attachment> attachments = (ArrayList<Attachment>) email.attachments;
     attachments.get(0).withContentType(null);
-    emailStore.save(email);
+    storedEmailId = emailStore.save(email);
+    readEmail = emailStore.read(storedEmailId);
+    attachments = (ArrayList<Attachment>) email.attachments;
+    Assert.assertNull(attachments.get(0).contentType);
 
     email = getDefaultFullEmail();
     attachments = (ArrayList<Attachment>) email.attachments;
     attachments.get(0).withInputStreamSupplier(null);
-    emailStore.save(email);
+    storedEmailId = emailStore.save(email);
+    readEmail = emailStore.read(storedEmailId);
+    attachments = (ArrayList<Attachment>) email.attachments;
+    Assert.assertNull(attachments.get(0).inputStreamSupplier);
 
     email = getDefaultFullEmail();
     attachments = (ArrayList<Attachment>) email.attachments;
     attachments.get(0).withName(null);
-    emailStore.save(email);
+    storedEmailId = emailStore.save(email);
+    readEmail = emailStore.read(storedEmailId);
+    attachments = (ArrayList<Attachment>) email.attachments;
+    Assert.assertNull(attachments.get(0).name);
+
+    email = getDefaultFullEmail();
+    attachments = (ArrayList<Attachment>) email.attachments;
+    attachments.clear();
+    attachments.add(null);
+    storedEmailId = emailStore.save(email);
+    readEmail = emailStore.read(storedEmailId);
+    attachments = (ArrayList<Attachment>) email.attachments;
+    Assert.assertTrue(readEmail.attachments.isEmpty());
   }
 
   @Test
   public void testSaveEmail() {
     try {
       emailStore.save(null);
-      Assert.fail("Expect exception. The email parameter is null!");
-    } catch (RuntimeException e) {
+      Assert.fail("Expect NullPointerException. The email parameter is null!");
+    } catch (NullPointerException e) {
       Assert.assertNotNull(e);
     }
-
-    emailStore.save(getDefaultFullEmail());
 
     testSaveAttachments();
 
@@ -230,53 +373,81 @@ public class EmailStoreTest {
 
     testSaveRecipients();
 
-    emailStore.save(getDefaultFullEmail().withSubject(null));
+    long storedEmailId = emailStore.save(getDefaultFullEmail().withSubject(null));
+    Email readEmail = emailStore.read(storedEmailId);
+    Assert.assertNull(readEmail.subject);
 
-    emailStore.save(getDefaultFullEmail().withTextContent(null));
+    storedEmailId = emailStore.save(getDefaultFullEmail().withTextContent(null));
+    readEmail = emailStore.read(storedEmailId);
+    Assert.assertNull(readEmail.textContent);
 
   }
 
   private void testSaveFrom() {
-    emailStore.save(getDefaultFullEmail().withFrom(null));
+    long storedEmailId = emailStore.save(getDefaultFullEmail().withFrom(null));
+    Email readEmail = emailStore.read(storedEmailId);
+    Assert.assertNull(readEmail.from);
 
     Email email = getDefaultFullEmail();
     email.from.withAddress(null);
-    emailStore.save(email);
+    storedEmailId = emailStore.save(email);
+    readEmail = emailStore.read(storedEmailId);
+    Assert.assertNull(readEmail.from.address);
 
     email = getDefaultFullEmail();
     email.from.withPersonal(null);
-    emailStore.save(email);
+    storedEmailId = emailStore.save(email);
+    readEmail = emailStore.read(storedEmailId);
+    Assert.assertNull(readEmail.from.personal);
   }
 
   private void testSaveHtmlContent() {
-    emailStore.save(getDefaultFullEmail().withHtmlContent(null));
+    long storedEmailId = emailStore.save(getDefaultFullEmail().withHtmlContent(null));
+    Email readEmail = emailStore.read(storedEmailId);
+    Assert.assertNull(readEmail.htmlContent);
 
     Email email = getDefaultFullEmail();
     email.htmlContent.withHtml(null);
-    emailStore.save(email);
+    storedEmailId = emailStore.save(email);
+    readEmail = emailStore.read(storedEmailId);
+    Assert.assertNull(readEmail.htmlContent.html);
 
     email = getDefaultFullEmail();
     email.htmlContent.withInlineImageByCidMap(null);
-    emailStore.save(email);
+    storedEmailId = emailStore.save(email);
+    readEmail = emailStore.read(storedEmailId);
+    Assert.assertTrue(readEmail.htmlContent.inlineImageByCidMap.isEmpty());
 
     email = getDefaultFullEmail();
-    email.htmlContent.inlineImageByCidMap.put(TEST_CID, null);
-    emailStore.save(email);
+    email.htmlContent.inlineImageByCidMap.put(DEFAULT_CID, null);
+    storedEmailId = emailStore.save(email);
+    readEmail = emailStore.read(storedEmailId);
+    Assert.assertEquals(1, readEmail.htmlContent.inlineImageByCidMap.size());
   }
 
   private void testSaveRecipients() {
-    emailStore.save(getDefaultFullEmail().withRecipients(null));
+    long storedEmailId = emailStore.save(getDefaultFullEmail().withRecipients(null));
+    Email readEmail = emailStore.read(storedEmailId);
+    Assert.assertTrue(readEmail.recipients.to.isEmpty());
+    Assert.assertTrue(readEmail.recipients.cc.isEmpty());
+    Assert.assertTrue(readEmail.recipients.bcc.isEmpty());
 
     Email email = getDefaultFullEmail();
     email.recipients.withTo(null);
-    emailStore.save(email);
+    storedEmailId = emailStore.save(email);
+    readEmail = emailStore.read(storedEmailId);
+    Assert.assertTrue(readEmail.recipients.to.isEmpty());
 
     email = getDefaultFullEmail();
     email.recipients.withCc(null);
-    emailStore.save(email);
+    storedEmailId = emailStore.save(email);
+    readEmail = emailStore.read(storedEmailId);
+    Assert.assertTrue(readEmail.recipients.cc.isEmpty());
 
     email = getDefaultFullEmail();
     email.recipients.withBcc(null);
-    emailStore.save(email);
+    storedEmailId = emailStore.save(email);
+    readEmail = emailStore.read(storedEmailId);
+    Assert.assertTrue(readEmail.recipients.bcc.isEmpty());
   }
 }

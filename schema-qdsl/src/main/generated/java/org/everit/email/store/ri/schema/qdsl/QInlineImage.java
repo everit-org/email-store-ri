@@ -48,7 +48,7 @@ public class QInlineImage extends com.mysema.query.sql.RelationalPathBase<QInlin
 
         public final com.mysema.query.sql.ForeignKey<QBinaryContent> emstrInlineImgBnryContFk = createForeignKey(binaryContentId, "BINARY_CONTENT_ID");
 
-        public final com.mysema.query.sql.ForeignKey<QEmail> emstrInlineImageEmailFk = createForeignKey(storedEmailId, "STORED_EMAIL_ID");
+        public final com.mysema.query.sql.ForeignKey<QHtmlContent> emstrInlineImgHtmlContFk = createForeignKey(htmlContentId, "HTML_CONTENT_ID");
 
     }
 
@@ -56,11 +56,11 @@ public class QInlineImage extends com.mysema.query.sql.RelationalPathBase<QInlin
 
     public final StringPath cid_ = createString("cid_");
 
+    public final NumberPath<Long> htmlContentId = createNumber("htmlContentId", Long.class);
+
     public final NumberPath<Integer> index_ = createNumber("index_", Integer.class);
 
     public final NumberPath<Long> inlineImageId = createNumber("inlineImageId", Long.class);
-
-    public final NumberPath<Long> storedEmailId = createNumber("storedEmailId", Long.class);
 
     public final PrimaryKeys pk = new PrimaryKeys();
 
@@ -87,11 +87,11 @@ public class QInlineImage extends com.mysema.query.sql.RelationalPathBase<QInlin
     }
 
     public void addMetadata() {
-        addMetadata(binaryContentId, ColumnMetadata.named("BINARY_CONTENT_ID").ofType(-5).withSize(19).notNull());
+        addMetadata(binaryContentId, ColumnMetadata.named("BINARY_CONTENT_ID").ofType(-5).withSize(19));
         addMetadata(cid_, ColumnMetadata.named("CID_").ofType(12).withSize(255));
+        addMetadata(htmlContentId, ColumnMetadata.named("HTML_CONTENT_ID").ofType(-5).withSize(19).notNull());
         addMetadata(index_, ColumnMetadata.named("INDEX_").ofType(4).withSize(10).notNull());
         addMetadata(inlineImageId, ColumnMetadata.named("INLINE_IMAGE_ID").ofType(-5).withSize(19).notNull());
-        addMetadata(storedEmailId, ColumnMetadata.named("STORED_EMAIL_ID").ofType(-5).withSize(19).notNull());
     }
 
 }

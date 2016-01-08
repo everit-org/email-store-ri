@@ -86,7 +86,7 @@ public class QAttachment extends com.mysema.query.sql.RelationalPathBase<QAttach
 
     public void addMetadata() {
         addMetadata(attachmentId, ColumnMetadata.named("ATTACHMENT_ID").ofType(-5).withSize(19).notNull());
-        addMetadata(binaryContentId, ColumnMetadata.named("BINARY_CONTENT_ID").ofType(-5).withSize(19).notNull());
+        addMetadata(binaryContentId, ColumnMetadata.named("BINARY_CONTENT_ID").ofType(-5).withSize(19));
         addMetadata(index_, ColumnMetadata.named("INDEX_").ofType(4).withSize(10).notNull());
         addMetadata(storedEmailId, ColumnMetadata.named("STORED_EMAIL_ID").ofType(-5).withSize(19).notNull());
     }
