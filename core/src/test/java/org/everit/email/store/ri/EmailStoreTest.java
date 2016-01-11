@@ -20,6 +20,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -36,6 +37,15 @@ import org.everit.email.EmailAddress;
 import org.everit.email.HtmlContent;
 import org.everit.email.InputStreamSupplier;
 import org.everit.email.Recipients;
+import org.everit.email.store.ri.schema.qdsl.QAddress;
+import org.everit.email.store.ri.schema.qdsl.QAttachment;
+import org.everit.email.store.ri.schema.qdsl.QBinaryContent;
+import org.everit.email.store.ri.schema.qdsl.QEmail;
+import org.everit.email.store.ri.schema.qdsl.QEmailRecipient;
+import org.everit.email.store.ri.schema.qdsl.QHtmlContent;
+import org.everit.email.store.ri.schema.qdsl.QInlineImage;
+import org.everit.email.store.ri.schema.qdsl.QTextContent;
+import org.everit.persistence.querydsl.support.QuerydslSupport;
 import org.everit.persistence.querydsl.support.ri.QuerydslSupportImpl;
 import org.everit.transaction.propagator.TransactionPropagator;
 import org.everit.transaction.propagator.jta.JTATransactionPropagator;
@@ -47,6 +57,8 @@ import org.junit.Test;
 
 import com.mysema.query.sql.Configuration;
 import com.mysema.query.sql.H2Templates;
+import com.mysema.query.sql.RelationalPathBase;
+import com.mysema.query.sql.SQLQuery;
 
 import liquibase.Contexts;
 import liquibase.Liquibase;
@@ -70,6 +82,9 @@ public class EmailStoreTest {
 
     @Override
     public InputStream getStream() {
+      if (resourceName == null) {
+        return null;
+      }
       return classLoader.getResourceAsStream(resourceName);
     }
   }
@@ -112,6 +127,8 @@ public class EmailStoreTest {
 
   private BasicManagedDataSource managedDataSource = null;
 
+  private QuerydslSupport querydslSupport;
+
   private TransactionPropagator transactionPropagator;
 
   @After
@@ -123,6 +140,35 @@ public class EmailStoreTest {
         throw new RuntimeException(e);
       }
     }
+  }
+
+  private void assertTableRows(final long expectedEmailCount, final long expectedAttachmentCount,
+      final long expectedTextContentCount, final long expectedHTMLContentCount,
+      final long expectedInlineImageCount, final long expectedEmailRecipientCount,
+      final long expectedAddressCount, final long expectedBinaryContentCount) {
+    long emailCount = selectTableCount(QEmail.email);
+    Assert.assertEquals(expectedEmailCount, emailCount);
+
+    long attachmentCount = selectTableCount(QAttachment.attachment);
+    Assert.assertEquals(expectedAttachmentCount, attachmentCount);
+
+    long textContentCount = selectTableCount(QTextContent.textContent);
+    Assert.assertEquals(expectedTextContentCount, textContentCount);
+
+    long htmlContentCount = selectTableCount(QHtmlContent.htmlContent);
+    Assert.assertEquals(expectedHTMLContentCount, htmlContentCount);
+
+    long inlineImageCount = selectTableCount(QInlineImage.inlineImage);
+    Assert.assertEquals(expectedInlineImageCount, inlineImageCount);
+
+    long emailRecipientCount = selectTableCount(QEmailRecipient.emailRecipient);
+    Assert.assertEquals(expectedEmailRecipientCount, emailRecipientCount);
+
+    long addressCount = selectTableCount(QAddress.address1);
+    Assert.assertEquals(expectedAddressCount, addressCount);
+
+    long binaryContentCount = selectTableCount(QBinaryContent.binaryContent);
+    Assert.assertEquals(expectedBinaryContentCount, binaryContentCount);
   }
 
   @Before
@@ -155,7 +201,7 @@ public class EmailStoreTest {
 
     transactionPropagator = new JTATransactionPropagator(transactionManager);
 
-    QuerydslSupportImpl querydslSupport =
+    querydslSupport =
         new QuerydslSupportImpl(new Configuration(H2Templates.DEFAULT), managedDataSource);
     emailStore = new EmailStoreImpl(querydslSupport, transactionPropagator, blobstore);
   }
@@ -192,6 +238,9 @@ public class EmailStoreTest {
     return xaDatasource;
   }
 
+  /**
+   * assertTableRows(1, 1, 1, 1, 1, 4, 4, 2);
+   */
   private Email getDefaultFullEmail() {
     HashMap<String, Attachment> inlineImageByCidMap = new HashMap<String, Attachment>();
     inlineImageByCidMap.put(DEFAULT_CID,
@@ -225,6 +274,62 @@ public class EmailStoreTest {
             .withTo(collectionTo)
             .withCc(collectionCc)
             .withBcc(collectionBcc));
+  }
+
+  private long selectTableCount(final RelationalPathBase<?> table) {
+    return querydslSupport.execute((connection, configuration) -> {
+      return new SQLQuery(connection, configuration)
+          .from(table)
+          .count();
+    });
+  }
+
+  @Test
+  public void testDeleteEmail() {
+    Email firstEmail = getDefaultFullEmail();
+    long firstEmailId = emailStore.save(firstEmail);
+    assertTableRows(1, 1, 1, 1, 1, 4, 4, 2);
+
+    Email secondEmail = getDefaultFullEmail();
+    secondEmail.recipients.to.add((createEmailAddress("test0", "test0")));
+    secondEmail.recipients.to.add((createEmailAddress("test1", "test1")));
+    secondEmail.recipients.cc.add((createEmailAddress("test2", "test2")));
+    Attachment txtAttachment = createAttachment("test", "test", "sample.txt");
+    secondEmail.attachments.add(txtAttachment);
+    secondEmail.htmlContent.inlineImageByCidMap.put("test", txtAttachment);
+    long secondEmailId = emailStore.save(secondEmail);
+    assertTableRows(2, 3, 2, 2, 3, 11, 11, 6);
+
+    emailStore.delete(firstEmailId);
+    Email readEmail = emailStore.read(firstEmailId);
+    Assert.assertNull(readEmail);
+    assertTableRows(1, 2, 1, 1, 2, 7, 7, 4);
+
+    emailStore.delete(firstEmailId);
+    assertTableRows(1, 2, 1, 1, 2, 7, 7, 4);
+
+    emailStore.delete(secondEmailId);
+    readEmail = emailStore.read(secondEmailId);
+    Assert.assertNull(readEmail);
+    assertTableRows(0, 0, 0, 0, 0, 0, 0, 0);
+
+    Email thirdEmail = getDefaultFullEmail();
+    thirdEmail.withTextContent(null);
+    thirdEmail.withHtmlContent(null);
+    thirdEmail.withAttachments(Collections.emptyList());
+    thirdEmail.withRecipients(new Recipients());
+    thirdEmail.withFrom(null);
+    long thirdEmailId = emailStore.save(thirdEmail);
+    assertTableRows(1, 0, 0, 0, 0, 0, 0, 0);
+    emailStore.delete(thirdEmailId);
+    assertTableRows(0, 0, 0, 0, 0, 0, 0, 0);
+
+    Email fourthEmail = getDefaultFullEmail();
+    fourthEmail.htmlContent.withHtml(null);
+    long fourthEmailId = emailStore.save(fourthEmail);
+    assertTableRows(1, 1, 1, 1, 1, 4, 4, 2);
+    emailStore.delete(fourthEmailId);
+    assertTableRows(0, 0, 0, 0, 0, 0, 0, 0);
   }
 
   private void testReadComplexEmail() {
