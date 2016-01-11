@@ -51,6 +51,7 @@ import org.everit.transaction.propagator.TransactionPropagator;
 
 import com.mysema.query.Tuple;
 import com.mysema.query.sql.SQLQuery;
+import com.mysema.query.sql.dml.SQLDeleteClause;
 import com.mysema.query.sql.dml.SQLInsertClause;
 import com.mysema.query.types.Projections;
 
@@ -90,6 +91,8 @@ public class EmailStoreImpl implements EmailStore {
 
   private final Blobstore blobstore;
 
+  QInlineImage qInlineImage = QInlineImage.inlineImage;
+
   private final QuerydslSupport querydslSupport;
 
   private final TransactionPropagator transactionPropagator;
@@ -127,8 +130,179 @@ public class EmailStoreImpl implements EmailStore {
 
   @Override
   public void delete(final long storedEmailId) {
-    // TODO Auto-generated method stub
+    boolean emailExists = isEmailExists(storedEmailId);
+    if (!emailExists) {
+      return;
+    }
+    transactionPropagator.required(() -> {
+      deleteRecipients(storedEmailId);
+      deleteAttachments(storedEmailId);
+      deleteHtmlContent(storedEmailId);
+      deleteTextContent(storedEmailId);
+      deleteEmail(storedEmailId);
+    });
+  }
 
+  private void deleteAttachments(final long storedEmailId) {
+    QAttachment qAttachment = QAttachment.attachment;
+    List<Long> binaryContentIds = querydslSupport.execute((connection, configuration) -> {
+      return new SQLQuery(connection, configuration)
+          .from(qAttachment)
+          .where(qAttachment.storedEmailId.eq(storedEmailId))
+          .list(qAttachment.binaryContentId);
+    });
+
+    querydslSupport.execute((connection, configuration) -> {
+      return new SQLDeleteClause(connection, configuration, qAttachment)
+          .where(qAttachment.storedEmailId.eq(storedEmailId))
+          .execute();
+    });
+
+    deleteBinaryContents(binaryContentIds);
+  }
+
+  private void deleteBinaryContents(final List<Long> binaryContentIds) {
+    if (binaryContentIds.isEmpty()) {
+      return;
+    }
+
+    QBinaryContent qBinaryContent = QBinaryContent.binaryContent;
+    List<Long> blobIds = querydslSupport.execute((connection, configuration) -> {
+      return new SQLQuery(connection, configuration)
+          .from(qBinaryContent)
+          .where(qBinaryContent.binaryContentId.in(binaryContentIds))
+          .list(qBinaryContent.blobId);
+    });
+
+    querydslSupport.execute((connection, configuration) -> {
+      return new SQLDeleteClause(connection, configuration, qBinaryContent)
+          .where(qBinaryContent.binaryContentId.in(binaryContentIds))
+          .execute();
+    });
+
+    deleteBlobs(blobIds);
+  }
+
+  private void deleteBlob(final Long blobId) {
+    if (blobId == null) {
+      return;
+    }
+
+    blobstore.deleteBlob(blobId);
+  }
+
+  private void deleteBlobs(final List<Long> blobIds) {
+    for (Long blobId : blobIds) {
+      deleteBlob(blobId);
+    }
+  }
+
+  private void deleteEmail(final long storedEmailId) {
+    querydslSupport.execute((connection, configuration) -> {
+      QEmail qEmail = QEmail.email;
+      return new SQLDeleteClause(connection, configuration, qEmail)
+          .where(qEmail.storedEmailId.eq(storedEmailId))
+          .execute();
+    });
+  }
+
+  private void deleteEmailAddresses(final List<Long> emailAddressIds) {
+    querydslSupport.execute((connection, configuration) -> {
+      QAddress qAddress = QAddress.address1;
+      return new SQLDeleteClause(connection, configuration, qAddress)
+          .where(qAddress.emailAddressId.in(emailAddressIds))
+          .execute();
+    });
+  }
+
+  private void deleteHtmlContent(final long storedEmailId) {
+    QHtmlContent qHtmlContent = QHtmlContent.htmlContent;
+    Tuple tuple = querydslSupport.execute((connection, configuration) -> {
+      return new SQLQuery(connection, configuration)
+          .from(qHtmlContent)
+          .where(qHtmlContent.storedEmailId.eq(storedEmailId))
+          .uniqueResult(qHtmlContent.htmlContentId,
+              qHtmlContent.blobId);
+    });
+
+    if (tuple == null) {
+      return;
+    }
+
+    Long htmlContentId = tuple.get(qHtmlContent.htmlContentId);
+    deleteInlineImages(htmlContentId);
+
+    querydslSupport.execute((connection, configuration) -> {
+      return new SQLDeleteClause(connection, configuration, qHtmlContent)
+          .where(qHtmlContent.htmlContentId.eq(htmlContentId))
+          .execute();
+    });
+
+    deleteBlob(tuple.get(qHtmlContent.blobId));
+  }
+
+  private void deleteInlineImages(final long htmlContentId) {
+    QInlineImage qInlineImage = QInlineImage.inlineImage;
+    List<Long> binaryContentIds = querydslSupport.execute((connection, configuration) -> {
+      return new SQLQuery(connection, configuration)
+          .from(qInlineImage)
+          .where(qInlineImage.htmlContentId.eq(htmlContentId))
+          .list(qInlineImage.binaryContentId);
+    });
+
+    querydslSupport.execute((connection, configuration) -> {
+      return new SQLDeleteClause(connection, configuration, qInlineImage)
+          .where(qInlineImage.htmlContentId.eq(htmlContentId))
+          .execute();
+    });
+
+    deleteBinaryContents(binaryContentIds);
+  }
+
+  private void deleteRecipients(final long storedEmailId) {
+    QEmailRecipient qEmailRecipient = QEmailRecipient.emailRecipient;
+    List<Long> emailAddressIds = querydslSupport.execute((connection, configuration) -> {
+      return new SQLQuery(connection, configuration)
+          .from(qEmailRecipient)
+          .where(qEmailRecipient.storedEmailId.eq(storedEmailId))
+          .list(qEmailRecipient.emailAddressId);
+    });
+
+    if (emailAddressIds.isEmpty()) {
+      return;
+    }
+
+    querydslSupport.execute((connection, configuration) -> {
+      return new SQLDeleteClause(connection, configuration, qEmailRecipient)
+          .where(qEmailRecipient.storedEmailId.eq(storedEmailId))
+          .execute();
+    });
+
+    deleteEmailAddresses(emailAddressIds);
+  }
+
+  private void deleteTextContent(final long storedEmailId) {
+    QTextContent qTextContent = QTextContent.textContent;
+    Tuple tuple = querydslSupport.execute((connection, configuration) -> {
+      return new SQLQuery(connection, configuration)
+          .from(qTextContent)
+          .where(qTextContent.storedEmailId.eq(storedEmailId))
+          .uniqueResult(qTextContent.textContentId,
+              qTextContent.blobId);
+    });
+
+    if (tuple == null) {
+      return;
+    }
+
+    Long textContentId = tuple.get(qTextContent.textContentId);
+    querydslSupport.execute((connection, configuration) -> {
+      return new SQLDeleteClause(connection, configuration, qTextContent)
+          .where(qTextContent.textContentId.eq(textContentId))
+          .execute();
+    });
+
+    deleteBlob(tuple.get(qTextContent.blobId));
   }
 
   private byte[] getBytes(final String content) {
@@ -290,6 +464,16 @@ public class EmailStoreImpl implements EmailStore {
     });
   }
 
+  private boolean isEmailExists(final long storedEmailId) {
+    QEmail qEmail = QEmail.email;
+    return querydslSupport.execute((connection, configuration) -> {
+      return new SQLQuery(connection, configuration)
+          .from(qEmail)
+          .where(qEmail.storedEmailId.eq(storedEmailId))
+          .exists();
+    });
+  }
+
   @Override
   public Email read(final long storedEmailId) {
     return transactionPropagator.required(() -> {
@@ -418,7 +602,6 @@ public class EmailStoreImpl implements EmailStore {
   }
 
   private Map<String, Attachment> readInlineImages(final long htmlContentId) {
-    QInlineImage qInlineImage = QInlineImage.inlineImage;
     QBinaryContent qBinaryContent = QBinaryContent.binaryContent;
     List<Tuple> inlineImageTuples = querydslSupport.execute((connection, configuration) -> {
       return new SQLQuery(connection, configuration)
