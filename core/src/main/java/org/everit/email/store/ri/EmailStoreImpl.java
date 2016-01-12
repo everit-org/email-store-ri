@@ -15,8 +15,6 @@
  */
 package org.everit.email.store.ri;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -35,7 +33,6 @@ import org.everit.email.Attachment;
 import org.everit.email.Email;
 import org.everit.email.EmailAddress;
 import org.everit.email.HtmlContent;
-import org.everit.email.InputStreamSupplier;
 import org.everit.email.Recipients;
 import org.everit.email.store.EmailStore;
 import org.everit.email.store.ri.schema.qdsl.QAddress;
@@ -61,24 +58,6 @@ import com.mysema.query.types.Projections;
 public class EmailStoreImpl implements EmailStore {
 
   /**
-   * Simple implementation of {@link InputStreamSupplier}.
-   */
-  private static class InputStreamSupplierImpl implements InputStreamSupplier {
-
-    private final byte[] content;
-
-    InputStreamSupplierImpl(final byte[] content) {
-      this.content = content;
-    }
-
-    @Override
-    public InputStream getStream() {
-      return new ByteArrayInputStream(content);
-    }
-
-  }
-
-  /**
    * Types of recipient.
    */
   private enum RecipientType {
@@ -90,8 +69,6 @@ public class EmailStoreImpl implements EmailStore {
   private static final int START_INDEX = 0;
 
   private final Blobstore blobstore;
-
-  QInlineImage qInlineImage = QInlineImage.inlineImage;
 
   private final QuerydslSupport querydslSupport;
 
@@ -118,6 +95,19 @@ public class EmailStoreImpl implements EmailStore {
     this.blobstore = blobstore;
   }
 
+  private Attachment createAttachment(final Long blobId, final String contentType,
+      final String name) {
+    BlobInputStreamSupplier inputStreamSupplier = null;
+    if (blobId != null) {
+      inputStreamSupplier = new BlobInputStreamSupplier(blobstore, blobId);
+    }
+    Attachment attachment = new Attachment()
+        .withContentType(contentType)
+        .withName(name)
+        .withInputStreamSupplier(inputStreamSupplier);
+    return attachment;
+  }
+
   private Long createBlob(final byte[] contentBytes) {
     if ((contentBytes == null) || (contentBytes.length < 1)) {
       return null;
@@ -125,6 +115,22 @@ public class EmailStoreImpl implements EmailStore {
     try (BlobAccessor blobAccessor = blobstore.createBlob()) {
       blobAccessor.write(contentBytes, 0, contentBytes.length);
       return blobAccessor.getBlobId();
+    }
+  }
+
+  private Long createBlob(final InputStream inputStream) {
+    if (inputStream == null) {
+      return null;
+    }
+    try (BlobAccessor blobAccessor = blobstore.createBlob()) {
+      int nRead;
+      byte[] data = new byte[BUFFER_SIZE];
+      while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+        blobAccessor.write(data, 0, nRead);
+      }
+      return blobAccessor.getBlobId();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
     }
   }
 
@@ -351,19 +357,7 @@ public class EmailStoreImpl implements EmailStore {
     return querydslSupport.execute((connection, configuration) -> {
       Long attachmentBlobId = null;
       if (attachment.inputStreamSupplier != null) {
-        try (InputStream is = attachment.inputStreamSupplier.getStream();
-            ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-          int nRead;
-          byte[] data = new byte[BUFFER_SIZE];
-          while ((nRead = is.read(data, 0, data.length)) != -1) {
-            baos.write(data, 0, nRead);
-          }
-          baos.flush();
-          byte[] attachmentBytes = baos.toByteArray();
-          attachmentBlobId = createBlob(attachmentBytes);
-        } catch (IOException e) {
-          throw new UncheckedIOException(e);
-        }
+        attachmentBlobId = createBlob(attachment.inputStreamSupplier.getStream());
       }
 
       QBinaryContent qBinaryContent = QBinaryContent.binaryContent;
@@ -527,12 +521,10 @@ public class EmailStoreImpl implements EmailStore {
 
     Collection<Attachment> attachments = new ArrayList<>();
     for (Tuple attachmentTuple : attachmentTuples) {
+      String contentType = attachmentTuple.get(qBinaryContent.contentType_);
+      String name = attachmentTuple.get(qBinaryContent.name_);
       Long blobId = attachmentTuple.get(qBinaryContent.blobId);
-      byte[] attachmentContentBytes = readBlob(blobId);
-      Attachment attachment = new Attachment()
-          .withContentType(attachmentTuple.get(qBinaryContent.contentType_))
-          .withName(attachmentTuple.get(qBinaryContent.name_))
-          .withInputStreamSupplier(new InputStreamSupplierImpl(attachmentContentBytes));
+      Attachment attachment = createAttachment(blobId, contentType, name);
 
       attachments.add(attachment);
     }
@@ -603,6 +595,7 @@ public class EmailStoreImpl implements EmailStore {
 
   private Map<String, Attachment> readInlineImages(final long htmlContentId) {
     QBinaryContent qBinaryContent = QBinaryContent.binaryContent;
+    QInlineImage qInlineImage = QInlineImage.inlineImage;
     List<Tuple> inlineImageTuples = querydslSupport.execute((connection, configuration) -> {
       return new SQLQuery(connection, configuration)
           .from(qInlineImage)
@@ -618,12 +611,10 @@ public class EmailStoreImpl implements EmailStore {
 
     Map<String, Attachment> inlineImageByCidMap = new LinkedHashMap<>();
     for (Tuple inlineImageTuple : inlineImageTuples) {
+      String contentType = inlineImageTuple.get(qBinaryContent.contentType_);
+      String name = inlineImageTuple.get(qBinaryContent.name_);
       Long blobId = inlineImageTuple.get(qBinaryContent.blobId);
-      byte[] attachmentContentBytes = readBlob(blobId);
-      Attachment attachment = new Attachment()
-          .withContentType(inlineImageTuple.get(qBinaryContent.contentType_))
-          .withName(inlineImageTuple.get(qBinaryContent.name_))
-          .withInputStreamSupplier(new InputStreamSupplierImpl(attachmentContentBytes));
+      Attachment attachment = createAttachment(blobId, contentType, name);
 
       inlineImageByCidMap.put(inlineImageTuple.get(qInlineImage.cid_), attachment);
     }
