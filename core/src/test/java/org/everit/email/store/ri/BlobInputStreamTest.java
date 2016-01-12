@@ -25,6 +25,8 @@ import org.apache.geronimo.transaction.manager.GeronimoTransactionManager;
 import org.everit.blobstore.BlobAccessor;
 import org.everit.blobstore.BlobReader;
 import org.everit.blobstore.mem.MemBlobstore;
+import org.everit.transaction.propagator.TransactionPropagator;
+import org.everit.transaction.propagator.jta.JTATransactionPropagator;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,38 +34,41 @@ import org.junit.Test;
 public class BlobInputStreamTest {
 
   private MemBlobstore blobStore;
-  private GeronimoTransactionManager transactionManager;
+  private TransactionPropagator transactionPropagator;
 
   @Before
   public void before() {
-    transactionManager = null;
+    GeronimoTransactionManager transactionManager = null;
     try {
       transactionManager = new GeronimoTransactionManager(6000);
     } catch (XAException e) {
       throw new RuntimeException(e);
     }
     blobStore = new MemBlobstore(transactionManager);
+    transactionPropagator = new JTATransactionPropagator(transactionManager);
   }
 
   @Test
   public void testRead() throws Exception {
-    transactionManager.begin();
     String testMsg = "test message !%@-";
-    long blobId;
-    try (BlobAccessor createBlob = blobStore.createBlob()) {
-      byte[] bytes = testMsg.getBytes(StandardCharsets.UTF_8);
-      createBlob.write(bytes, 0, bytes.length);
-      blobId = createBlob.getBlobId();
-    }
-    transactionManager.commit();
+    long blobId = transactionPropagator.required(() -> {
+      try (BlobAccessor createBlob = blobStore.createBlob()) {
+        byte[] bytes = testMsg.getBytes(StandardCharsets.UTF_8);
+        createBlob.write(bytes, 0, bytes.length);
+        return createBlob.getBlobId();
+      }
+    });
 
-    transactionManager.begin();
-    try (BlobReader readBlob = blobStore.readBlob(blobId);
-        BlobInputStream bis = new BlobInputStream(readBlob);
-        BufferedReader br = new BufferedReader(new InputStreamReader(bis, "UTF-8"));) {
-      String line = br.readLine();
-      Assert.assertEquals(testMsg, line);
-    }
-    transactionManager.commit();
+    transactionPropagator.required(() -> {
+      try (BlobReader readBlob = blobStore.readBlob(blobId);
+          BlobInputStream bis = new BlobInputStream(readBlob);
+          BufferedReader br = new BufferedReader(new InputStreamReader(bis, "UTF-8"));) {
+        String line;
+        line = br.readLine();
+        Assert.assertEquals(testMsg, line);
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    });
   }
 }
