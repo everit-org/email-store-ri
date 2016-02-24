@@ -37,6 +37,7 @@ import org.everit.email.EmailAddress;
 import org.everit.email.HtmlContent;
 import org.everit.email.InputStreamSupplier;
 import org.everit.email.Recipients;
+import org.everit.email.store.NonExistentEmailException;
 import org.everit.email.store.ri.schema.qdsl.QAddress;
 import org.everit.email.store.ri.schema.qdsl.QAttachment;
 import org.everit.email.store.ri.schema.qdsl.QBinaryContent;
@@ -305,7 +306,12 @@ public class EmailStoreTest {
     Assert.assertNull(readEmail);
     assertTableRows(1, 2, 1, 1, 2, 7, 7, 4);
 
-    emailStore.delete(firstEmailId);
+    try {
+      emailStore.delete(firstEmailId);
+      Assert.fail("Not exists email. Expect NonExistentEmailException.");
+    } catch (NonExistentEmailException e) {
+      Assert.assertNotNull(e);
+    }
     assertTableRows(1, 2, 1, 1, 2, 7, 7, 4);
 
     emailStore.delete(secondEmailId);
@@ -423,15 +429,18 @@ public class EmailStoreTest {
   }
 
   private void testSaveAttachments() {
-    long storedEmailId = emailStore.save(getDefaultFullEmail().withAttachments(null));
-    Email readEmail = emailStore.read(storedEmailId);
-    Assert.assertTrue(readEmail.attachments.isEmpty());
+    try {
+      emailStore.save(getDefaultFullEmail().withAttachments(null));
+      Assert.fail("Attachments is null. Expect IllegalArgumentException.");
+    } catch (IllegalArgumentException e) {
+      Assert.assertNotNull(e);
+    }
 
     Email email = getDefaultFullEmail();
     List<Attachment> attachments = (ArrayList<Attachment>) email.attachments;
     attachments.get(0).withContentType(null);
-    storedEmailId = emailStore.save(email);
-    readEmail = emailStore.read(storedEmailId);
+    long storedEmailId = emailStore.save(email);
+    Email readEmail = emailStore.read(storedEmailId);
     attachments = (ArrayList<Attachment>) email.attachments;
     Assert.assertNull(attachments.get(0).contentType);
 
@@ -517,11 +526,15 @@ public class EmailStoreTest {
     readEmail = emailStore.read(storedEmailId);
     Assert.assertNull(readEmail.htmlContent.html);
 
-    email = getDefaultFullEmail();
-    email.htmlContent.withInlineImageByCidMap(null);
-    storedEmailId = emailStore.save(email);
-    readEmail = emailStore.read(storedEmailId);
-    Assert.assertTrue(readEmail.htmlContent.inlineImageByCidMap.isEmpty());
+    try {
+      email = getDefaultFullEmail();
+      email.htmlContent.withInlineImageByCidMap(null);
+      emailStore.save(email);
+      Assert.fail("InlineImageByCidMap collection is null. "
+          + "Expect IllegalArgumentException.");
+    } catch (IllegalArgumentException e) {
+      Assert.assertNotNull(e);
+    }
 
     email = getDefaultFullEmail();
     email.htmlContent.inlineImageByCidMap.put(DEFAULT_CID, null);
@@ -538,21 +551,30 @@ public class EmailStoreTest {
     Assert.assertTrue(readEmail.recipients.bcc.isEmpty());
 
     Email email = getDefaultFullEmail();
-    email.recipients.withTo(null);
-    storedEmailId = emailStore.save(email);
-    readEmail = emailStore.read(storedEmailId);
-    Assert.assertTrue(readEmail.recipients.to.isEmpty());
+    try {
+      email.recipients.withTo(null);
+      emailStore.save(email);
+      Assert.fail("Recipient.TO collection is null. Expect IllegalArgumentException.");
+    } catch (IllegalArgumentException e) {
+      Assert.assertNotNull(e);
+    }
 
-    email = getDefaultFullEmail();
-    email.recipients.withCc(null);
-    storedEmailId = emailStore.save(email);
-    readEmail = emailStore.read(storedEmailId);
-    Assert.assertTrue(readEmail.recipients.cc.isEmpty());
+    try {
+      email = getDefaultFullEmail();
+      email.recipients.withCc(null);
+      emailStore.save(email);
+      Assert.fail("Recipient.CC collection is null. Expect IllegalArgumentException.");
+    } catch (IllegalArgumentException e) {
+      Assert.assertNotNull(e);
+    }
 
-    email = getDefaultFullEmail();
-    email.recipients.withBcc(null);
-    storedEmailId = emailStore.save(email);
-    readEmail = emailStore.read(storedEmailId);
-    Assert.assertTrue(readEmail.recipients.bcc.isEmpty());
+    try {
+      email = getDefaultFullEmail();
+      email.recipients.withBcc(null);
+      emailStore.save(email);
+      Assert.fail("Recipient.BCC collection is null. Expect IllegalArgumentException.");
+    } catch (IllegalArgumentException e) {
+      Assert.assertNotNull(e);
+    }
   }
 }

@@ -15,6 +15,7 @@
  */
 package org.everit.email.store.ri;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -35,6 +36,7 @@ import org.everit.email.EmailAddress;
 import org.everit.email.HtmlContent;
 import org.everit.email.Recipients;
 import org.everit.email.store.EmailStore;
+import org.everit.email.store.NonExistentEmailException;
 import org.everit.email.store.ri.schema.qdsl.QAddress;
 import org.everit.email.store.ri.schema.qdsl.QAttachment;
 import org.everit.email.store.ri.schema.qdsl.QBinaryContent;
@@ -109,19 +111,14 @@ public class EmailStoreImpl implements EmailStore {
   }
 
   private Long createBlob(final byte[] contentBytes) {
-    if ((contentBytes == null) || (contentBytes.length < 1)) {
+    if (contentBytes.length < 1) {
       return null;
     }
-    try (BlobAccessor blobAccessor = blobstore.createBlob()) {
-      blobAccessor.write(contentBytes, 0, contentBytes.length);
-      return blobAccessor.getBlobId();
-    }
+    return createBlob(new ByteArrayInputStream(contentBytes));
   }
 
   private Long createBlob(final InputStream inputStream) {
-    if (inputStream == null) {
-      return null;
-    }
+    Objects.requireNonNull(inputStream, "inputStream cannot be null");
     try (BlobAccessor blobAccessor = blobstore.createBlob()) {
       int nRead;
       byte[] data = new byte[BUFFER_SIZE];
@@ -136,11 +133,9 @@ public class EmailStoreImpl implements EmailStore {
 
   @Override
   public void delete(final long storedEmailId) {
-    boolean emailExists = isEmailExists(storedEmailId);
-    if (!emailExists) {
-      return;
-    }
     transactionPropagator.required(() -> {
+      lockEmailForUpdate(storedEmailId);
+
       deleteRecipients(storedEmailId);
       deleteAttachments(storedEmailId);
       deleteHtmlContent(storedEmailId);
@@ -331,7 +326,7 @@ public class EmailStoreImpl implements EmailStore {
   private void insertAttachments(final Collection<Attachment> attachments,
       final long storedEmailId) {
     if (attachments == null) {
-      return;
+      throw new IllegalArgumentException("attachments collection cannot be null");
     }
 
     querydslSupport.execute((connection, configuration) -> {
@@ -397,7 +392,7 @@ public class EmailStoreImpl implements EmailStore {
   private void insertInlineImages(final Map<String, Attachment> inlineImageByCidMap,
       final long htmlContentId) {
     if (inlineImageByCidMap == null) {
-      return;
+      throw new IllegalArgumentException("inlineImageByCidMap cannot be null");
     }
 
     querydslSupport.execute((connection, configuration) -> {
@@ -434,7 +429,8 @@ public class EmailStoreImpl implements EmailStore {
   private void insertRecipients(final Collection<EmailAddress> emailAddresses,
       final RecipientType recipientType, final long storedEmailId) {
     if (emailAddresses == null) {
-      return;
+      throw new IllegalArgumentException(
+          "Recipient." + recipientType + " collection cannot be null");
     }
 
     int index = START_INDEX;
@@ -458,14 +454,19 @@ public class EmailStoreImpl implements EmailStore {
     });
   }
 
-  private boolean isEmailExists(final long storedEmailId) {
-    QEmail qEmail = QEmail.email;
-    return querydslSupport.execute((connection, configuration) -> {
+  private void lockEmailForUpdate(final long storedEmailId) {
+    Boolean exists = querydslSupport.execute((connection, configuration) -> {
+      QEmail qEmail = QEmail.email;
       return new SQLQuery(connection, configuration)
           .from(qEmail)
           .where(qEmail.storedEmailId.eq(storedEmailId))
+          .forUpdate()
           .exists();
     });
+    if (!exists) {
+      throw new NonExistentEmailException(
+          "Stored email not exists [storeEmailId: " + storedEmailId + "]");
+    }
   }
 
   @Override
