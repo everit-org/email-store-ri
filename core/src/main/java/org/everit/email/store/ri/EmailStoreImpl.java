@@ -34,6 +34,7 @@ import org.everit.email.Attachment;
 import org.everit.email.Email;
 import org.everit.email.EmailAddress;
 import org.everit.email.HtmlContent;
+import org.everit.email.InputStreamSupplier;
 import org.everit.email.Recipients;
 import org.everit.email.store.EmailStore;
 import org.everit.email.store.NonExistentEmailException;
@@ -99,9 +100,12 @@ public class EmailStoreImpl implements EmailStore {
 
   private Attachment createAttachment(final Long blobId, final String contentType,
       final String name) {
-    BlobInputStreamSupplier inputStreamSupplier = null;
+    InputStreamSupplier inputStreamSupplier = null;
     if (blobId != null) {
-      inputStreamSupplier = new BlobInputStreamSupplier(blobstore, blobId);
+      inputStreamSupplier = () -> {
+        BlobReader readBlob = blobstore.readBlob(blobId);
+        return new BlobInputStream(readBlob);
+      };
     }
     Attachment attachment = new Attachment()
         .withContentType(contentType)
@@ -111,9 +115,6 @@ public class EmailStoreImpl implements EmailStore {
   }
 
   private Long createBlob(final byte[] contentBytes) {
-    if (contentBytes.length < 1) {
-      return null;
-    }
     return createBlob(new ByteArrayInputStream(contentBytes));
   }
 
@@ -185,10 +186,6 @@ public class EmailStoreImpl implements EmailStore {
   }
 
   private void deleteBlob(final Long blobId) {
-    if (blobId == null) {
-      return;
-    }
-
     blobstore.deleteBlob(blobId);
   }
 
@@ -325,9 +322,7 @@ public class EmailStoreImpl implements EmailStore {
 
   private void insertAttachments(final Collection<Attachment> attachments,
       final long storedEmailId) {
-    if (attachments == null) {
-      throw new IllegalArgumentException("attachments collection cannot be null");
-    }
+    Objects.requireNonNull(attachments, "attachments collection cannot be null");
 
     querydslSupport.execute((connection, configuration) -> {
       int index = START_INDEX;
@@ -345,9 +340,7 @@ public class EmailStoreImpl implements EmailStore {
   }
 
   private Long insertBinaryContent(final Attachment attachment) {
-    if (attachment == null) {
-      return null;
-    }
+    Objects.requireNonNull(attachment, "attachment cannot be null");
 
     return querydslSupport.execute((connection, configuration) -> {
       Long attachmentBlobId = null;
@@ -391,9 +384,7 @@ public class EmailStoreImpl implements EmailStore {
 
   private void insertInlineImages(final Map<String, Attachment> inlineImageByCidMap,
       final long htmlContentId) {
-    if (inlineImageByCidMap == null) {
-      throw new IllegalArgumentException("inlineImageByCidMap cannot be null");
-    }
+    Objects.requireNonNull(inlineImageByCidMap, "inlineImageByCidMap cannot be null");
 
     querydslSupport.execute((connection, configuration) -> {
       int index = START_INDEX;
@@ -428,10 +419,8 @@ public class EmailStoreImpl implements EmailStore {
 
   private void insertRecipients(final Collection<EmailAddress> emailAddresses,
       final RecipientType recipientType, final long storedEmailId) {
-    if (emailAddresses == null) {
-      throw new IllegalArgumentException(
-          "Recipient." + recipientType + " collection cannot be null");
-    }
+    Objects.requireNonNull(emailAddresses, "Recipient." + recipientType
+        + " collection cannot be null");
 
     int index = START_INDEX;
     for (EmailAddress emailAddress : emailAddresses) {
@@ -533,10 +522,6 @@ public class EmailStoreImpl implements EmailStore {
   }
 
   private byte[] readBlob(final Long blobId) {
-    if (blobId == null) {
-      return new byte[0];
-    }
-
     try (BlobReader readBlob = blobstore.readBlob(blobId)) {
       int blobSize = (int) readBlob.getSize();
       byte[] result = new byte[blobSize];
@@ -650,9 +635,8 @@ public class EmailStoreImpl implements EmailStore {
           .where(qTextContent.storedEmailId.eq(storedEmailId))
           .uniqueResult(qTextContent.blobId);
     });
-
-    byte[] textContentBytes = readBlob(textContentBlobId);
-    if (textContentBytes.length > 0) {
+    if (textContentBlobId != null) {
+      byte[] textContentBytes = readBlob(textContentBlobId);
       return new String(textContentBytes, StandardCharsets.UTF_8);
     }
     return null;
