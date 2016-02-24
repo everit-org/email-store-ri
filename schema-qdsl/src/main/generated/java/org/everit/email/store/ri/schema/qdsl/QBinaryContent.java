@@ -87,8 +87,8 @@ public class QBinaryContent extends com.mysema.query.sql.RelationalPathBase<QBin
     public void addMetadata() {
         addMetadata(binaryContentId, ColumnMetadata.named("BINARY_CONTENT_ID").ofType(-5).withSize(19).notNull());
         addMetadata(blobId, ColumnMetadata.named("BLOB_ID").ofType(-5).withSize(19));
-        addMetadata(contentType_, ColumnMetadata.named("CONTENT_TYPE_").ofType(12).withSize(255));
-        addMetadata(name_, ColumnMetadata.named("NAME_").ofType(12).withSize(255));
+        addMetadata(contentType_, ColumnMetadata.named("CONTENT_TYPE_").ofType(12).withSize(2000));
+        addMetadata(name_, ColumnMetadata.named("NAME_").ofType(12).withSize(2000));
     }
 
 }

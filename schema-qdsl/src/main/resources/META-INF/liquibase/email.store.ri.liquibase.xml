@@ -28,7 +28,7 @@
       <column name="STORED_EMAIL_ID" type="BIGINT" autoIncrement="true">
         <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_EMAIL" />
       </column>
-      <column name="SUBJECT_" type="java.sql.Types.VARCHAR(255)">
+      <column name="SUBJECT_" type="VARCHAR(2000)">
         <constraints nullable="true" />
       </column>
     </createTable>
@@ -67,10 +67,10 @@
       <column name="EMAIL_ADDRESS_ID" type="BIGINT" autoIncrement="true">
         <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_ADDRESS" />
       </column>
-      <column name="ADDRESS" type="java.sql.Types.VARCHAR(255)">
+      <column name="ADDRESS" type="VARCHAR(2000)">
         <constraints nullable="true" />
       </column>
-      <column name="PERSONAL" type="java.sql.Types.VARCHAR(255)">
+      <column name="PERSONAL" type="VARCHAR(2000)">
         <constraints nullable="true" />
       </column>
     </createTable>
@@ -79,7 +79,7 @@
       <column name="EMAIL_RECIPIENT_ID" type="BIGINT" autoIncrement="true">
         <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_EMAIL_RECIPIENT" />
       </column>
-      <column name="RECIPIENT_TYPE" type="java.sql.Types.VARCHAR(255)">
+      <column name="RECIPIENT_TYPE" type="VARCHAR(255)">
         <constraints nullable="false" />
       </column>
       <column name="INDEX_" type="INTEGER">
@@ -103,10 +103,10 @@
       <column name="BINARY_CONTENT_ID" type="BIGINT" autoIncrement="true">
         <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_BINARY_CONTENT" />
       </column>
-      <column name="NAME_" type="java.sql.Types.VARCHAR(255)">
+      <column name="NAME_" type="VARCHAR(2000)">
         <constraints nullable="true" />
       </column>
-      <column name="CONTENT_TYPE_" type="java.sql.Types.VARCHAR(255)">
+      <column name="CONTENT_TYPE_" type="VARCHAR(2000)">
         <constraints nullable="true" />
       </column>
       <column name="BLOB_ID" type="BIGINT">
@@ -118,7 +118,7 @@
       <column name="INLINE_IMAGE_ID" type="BIGINT" autoIncrement="true">
         <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_INLINE_IMAGE" />
       </column>
-      <column name="CID_" type="java.sql.Types.VARCHAR(255)">
+      <column name="CID_" type="VARCHAR(2000)">
         <constraints nullable="true" />
       </column>
       <column name="BINARY_CONTENT_ID" type="BIGINT">
