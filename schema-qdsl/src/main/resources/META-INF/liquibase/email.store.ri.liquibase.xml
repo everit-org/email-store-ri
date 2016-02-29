@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright (C) 2011 Everit Kft. (http://www.everit.org)
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+            http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<databaseChangeLog objectQuotingStrategy="QUOTE_ALL_OBJECTS" logicalFilePath="org.everit.email.store.ri.schema.qdsl"
+  xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.0.xsd
+        http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+
+  <changeSet id="1.0.0" author="everit">
+
+    <createTable tableName="EMSTR_EMAIL">
+      <column name="STORED_EMAIL_ID" type="BIGINT" autoIncrement="true">
+        <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_EMAIL" />
+      </column>
+      <column name="SUBJECT_" type="VARCHAR(2000)">
+        <constraints nullable="true" />
+      </column>
+    </createTable>
+
+    <createTable tableName="EMSTR_TEXT_CONTENT">
+      <column name="TEXT_CONTENT_ID" type="BIGINT" autoIncrement="true">
+        <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_TEXT_CONTENT" />
+      </column>
+      <column name="BLOB_ID" type="BIGINT">
+        <constraints nullable="true" />
+      </column>
+      <column name="STORED_EMAIL_ID" type="BIGINT">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+    <addForeignKeyConstraint constraintName="FK_EMSTR_TEXT_CONTENT_EMAIL"
+      baseColumnNames="STORED_EMAIL_ID" baseTableName="EMSTR_TEXT_CONTENT" referencedColumnNames="STORED_EMAIL_ID"
+      referencedTableName="EMSTR_EMAIL" />
+
+    <createTable tableName="EMSTR_HTML_CONTENT">
+      <column name="HTML_CONTENT_ID" type="BIGINT" autoIncrement="true">
+        <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_HTML_CONTENT" />
+      </column>
+      <column name="BLOB_ID" type="BIGINT">
+        <constraints nullable="true" />
+      </column>
+      <column name="STORED_EMAIL_ID" type="BIGINT">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+    <addForeignKeyConstraint constraintName="FK_EMSTR_HTML_CONTENT_EMAIL"
+      baseColumnNames="STORED_EMAIL_ID" baseTableName="EMSTR_HTML_CONTENT" referencedColumnNames="STORED_EMAIL_ID"
+      referencedTableName="EMSTR_EMAIL" />
+
+    <createTable tableName="EMSTR_ADDRESS">
+      <column name="EMAIL_ADDRESS_ID" type="BIGINT" autoIncrement="true">
+        <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_ADDRESS" />
+      </column>
+      <column name="ADDRESS" type="VARCHAR(2000)">
+        <constraints nullable="true" />
+      </column>
+      <column name="PERSONAL" type="VARCHAR(2000)">
+        <constraints nullable="true" />
+      </column>
+    </createTable>
+
+    <createTable tableName="EMSTR_EMAIL_RECIPIENT">
+      <column name="EMAIL_RECIPIENT_ID" type="BIGINT" autoIncrement="true">
+        <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_EMAIL_RECIPIENT" />
+      </column>
+      <column name="RECIPIENT_TYPE" type="VARCHAR(255)">
+        <constraints nullable="false" />
+      </column>
+      <column name="INDEX_" type="INTEGER">
+        <constraints nullable="false" />
+      </column>
+      <column name="STORED_EMAIL_ID" type="BIGINT">
+        <constraints nullable="false" />
+      </column>
+      <column name="EMAIL_ADDRESS_ID" type="BIGINT">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+    <addForeignKeyConstraint constraintName="FK_EMSTR_EMAIL_RCPNT_EMAIL"
+      baseColumnNames="STORED_EMAIL_ID" baseTableName="EMSTR_EMAIL_RECIPIENT" referencedColumnNames="STORED_EMAIL_ID"
+      referencedTableName="EMSTR_EMAIL" />
+    <addForeignKeyConstraint constraintName="FK_EMSTR_EMAIL_RCPNT_ADDRESS"
+      baseColumnNames="EMAIL_ADDRESS_ID" baseTableName="EMSTR_EMAIL_RECIPIENT"
+      referencedColumnNames="EMAIL_ADDRESS_ID" referencedTableName="EMSTR_ADDRESS" />
+
+    <createTable tableName="EMSTR_BINARY_CONTENT">
+      <column name="BINARY_CONTENT_ID" type="BIGINT" autoIncrement="true">
+        <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_BINARY_CONTENT" />
+      </column>
+      <column name="NAME_" type="VARCHAR(2000)">
+        <constraints nullable="true" />
+      </column>
+      <column name="CONTENT_TYPE_" type="VARCHAR(2000)">
+        <constraints nullable="true" />
+      </column>
+      <column name="BLOB_ID" type="BIGINT">
+        <constraints nullable="true" />
+      </column>
+    </createTable>
+
+    <createTable tableName="EMSTR_INLINE_IMAGE">
+      <column name="INLINE_IMAGE_ID" type="BIGINT" autoIncrement="true">
+        <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_INLINE_IMAGE" />
+      </column>
+      <column name="CID_" type="VARCHAR(2000)">
+        <constraints nullable="true" />
+      </column>
+      <column name="BINARY_CONTENT_ID" type="BIGINT">
+        <constraints nullable="true" />
+      </column>
+      <column name="INDEX_" type="INTEGER">
+        <constraints nullable="false" />
+      </column>
+      <column name="HTML_CONTENT_ID" type="BIGINT">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+    <addForeignKeyConstraint constraintName="FK_EMSTR_INLINE_IMG_BNRY_CONT"
+      baseColumnNames="BINARY_CONTENT_ID" baseTableName="EMSTR_INLINE_IMAGE" referencedColumnNames="BINARY_CONTENT_ID"
+      referencedTableName="EMSTR_BINARY_CONTENT" />
+    <addForeignKeyConstraint constraintName="FK_EMSTR_INLINE_IMG_HTML_CONT"
+      baseColumnNames="HTML_CONTENT_ID" baseTableName="EMSTR_INLINE_IMAGE" referencedColumnNames="HTML_CONTENT_ID"
+      referencedTableName="EMSTR_HTML_CONTENT" />
+
+
+    <createTable tableName="EMSTR_ATTACHMENT">
+      <column name="ATTACHMENT_ID" type="BIGINT" autoIncrement="true">
+        <constraints primaryKey="true" nullable="false" primaryKeyName="PK_EMSTR_ATTACHMENT" />
+      </column>
+      <column name="BINARY_CONTENT_ID" type="BIGINT">
+        <constraints nullable="true" />
+      </column>
+      <column name="STORED_EMAIL_ID" type="BIGINT">
+        <constraints nullable="false" />
+      </column>
+      <column name="INDEX_" type="INTEGER">
+        <constraints nullable="false" />
+      </column>
+    </createTable>
+    <addForeignKeyConstraint constraintName="FK_EMSTR_ATTACHMENT_EMAIL"
+      baseColumnNames="STORED_EMAIL_ID" baseTableName="EMSTR_ATTACHMENT" referencedColumnNames="STORED_EMAIL_ID"
+      referencedTableName="EMSTR_EMAIL" />
+    <addForeignKeyConstraint constraintName="FK_EMSTR_ATTACHMENT_BNRY_CONT"
+      baseColumnNames="BINARY_CONTENT_ID" baseTableName="EMSTR_ATTACHMENT" referencedColumnNames="BINARY_CONTENT_ID"
+      referencedTableName="EMSTR_BINARY_CONTENT" />
+
+  </changeSet>
+
+</databaseChangeLog>
+
