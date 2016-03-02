@@ -86,7 +86,7 @@
               *
             </Import-Package>
             <Export-Package>
-			  org.everit.email.store.ri;version="1.0.0",
+              org.everit.email.store.ri;version="1.0.0",
             </Export-Package>
           </instructions>
         </configuration>
