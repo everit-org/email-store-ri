@@ -86,6 +86,7 @@
               *
             </Import-Package>
             <Export-Package>
+              org.everit.email.store.ri.schema.qdsl;version="1.0.0"
             </Export-Package>
             <Provide-Capability>
               liquibase.schema;name=org.everit.email.store.ri;resource=/META-INF/liquibase/email.store.ri.liquibase.xml;lqmg.config.resource=/META-INF/liquibase/email.store.ri.lqmg.xml
@@ -135,7 +136,7 @@
     <dependency>
       <groupId>com.mysema.querydsl</groupId>
       <artifactId>querydsl-sql</artifactId>
-      <version>3.7.0</version>
+      <version>3.6.7</version>
     </dependency>
   </dependencies>
 
