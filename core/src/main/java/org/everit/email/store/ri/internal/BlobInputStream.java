@@ -34,8 +34,8 @@ public class BlobInputStream extends InputStream {
    * @param blobReader
    *          the {@link BlobReader} object. Cannot be <code>null</code>.
    *
-   * @throws {@link
-   *           NullPointerException} if blobReader parameter is null.
+   * @throws NullPointerException
+   *           if blobReader parameter is null.
    */
   public BlobInputStream(final BlobReader blobReader) {
     this.blobReader =
