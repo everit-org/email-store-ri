@@ -38,6 +38,7 @@ import org.everit.email.InputStreamSupplier;
 import org.everit.email.Recipients;
 import org.everit.email.store.EmailStore;
 import org.everit.email.store.NonExistentEmailException;
+import org.everit.email.store.ri.internal.BlobInputStream;
 import org.everit.email.store.ri.schema.qdsl.QAddress;
 import org.everit.email.store.ri.schema.qdsl.QAttachment;
 import org.everit.email.store.ri.schema.qdsl.QBinaryContent;
@@ -69,7 +70,7 @@ public class EmailStoreImpl implements EmailStore {
 
   private static final int BUFFER_SIZE = 1024;
 
-  private static final int START_INDEX = 0;
+  private static final int EMAIL_CONTENT_START_INDEX = 0;
 
   private final Blobstore blobstore;
 
@@ -312,7 +313,7 @@ public class EmailStoreImpl implements EmailStore {
     Objects.requireNonNull(attachments, "attachments collection cannot be null");
 
     querydslSupport.execute((connection, configuration) -> {
-      int index = START_INDEX;
+      int index = EMAIL_CONTENT_START_INDEX;
       for (Attachment attachment : attachments) {
         Long binaryContentId = insertBinaryContent(attachment);
         QAttachment qAttachment = QAttachment.attachment;
@@ -374,7 +375,7 @@ public class EmailStoreImpl implements EmailStore {
     Objects.requireNonNull(inlineImageByCidMap, "inlineImageByCidMap cannot be null");
 
     querydslSupport.execute((connection, configuration) -> {
-      int index = START_INDEX;
+      int index = EMAIL_CONTENT_START_INDEX;
       for (Map.Entry<String, Attachment> entry : inlineImageByCidMap.entrySet()) {
         Long binaryContentId = insertBinaryContent(entry.getValue());
         QInlineImage qInlineImage = QInlineImage.inlineImage;
@@ -409,7 +410,7 @@ public class EmailStoreImpl implements EmailStore {
     Objects.requireNonNull(emailAddresses, "Recipient." + recipientType
         + " collection cannot be null");
 
-    int index = START_INDEX;
+    int index = EMAIL_CONTENT_START_INDEX;
     for (EmailAddress emailAddress : emailAddresses) {
       insertRecipient(emailAddress, recipientType, index++, storedEmailId);
     }
@@ -645,7 +646,7 @@ public class EmailStoreImpl implements EmailStore {
   private void saveEmailRecipients(final EmailAddress from, final Recipients recipients,
       final long storedEmailId) {
     if (from != null) {
-      insertRecipient(from, RecipientType.FROM, START_INDEX, storedEmailId);
+      insertRecipient(from, RecipientType.FROM, EMAIL_CONTENT_START_INDEX, storedEmailId);
     }
     if (recipients != null) {
       insertRecipients(recipients.to, RecipientType.TO, storedEmailId);

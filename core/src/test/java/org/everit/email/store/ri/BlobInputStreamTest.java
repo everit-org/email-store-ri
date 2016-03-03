@@ -25,6 +25,7 @@ import org.apache.geronimo.transaction.manager.GeronimoTransactionManager;
 import org.everit.blobstore.BlobAccessor;
 import org.everit.blobstore.BlobReader;
 import org.everit.blobstore.mem.MemBlobstore;
+import org.everit.email.store.ri.internal.BlobInputStream;
 import org.everit.transaction.propagator.TransactionPropagator;
 import org.everit.transaction.propagator.jta.JTATransactionPropagator;
 import org.junit.Assert;
