@@ -288,7 +288,7 @@ public class EmailStoreTest {
   @Test
   public void testDeleteEmail() {
     Email firstEmail = getDefaultFullEmail();
-    long firstEmailId = emailStore.save(firstEmail);
+    long firstEmailId = emailStore.store(firstEmail);
     assertTableRows(1, 1, 1, 1, 1, 4, 4, 2);
 
     Email secondEmail = getDefaultFullEmail();
@@ -298,23 +298,23 @@ public class EmailStoreTest {
     Attachment txtAttachment = createAttachment("test", "test", "sample.txt");
     secondEmail.attachments.add(txtAttachment);
     secondEmail.htmlContent.inlineImageByCidMap.put("test", txtAttachment);
-    long secondEmailId = emailStore.save(secondEmail);
+    long secondEmailId = emailStore.store(secondEmail);
     assertTableRows(2, 3, 2, 2, 3, 11, 11, 6);
 
-    emailStore.delete(firstEmailId);
+    emailStore.remove(firstEmailId);
     Email readEmail = emailStore.read(firstEmailId);
     Assert.assertNull(readEmail);
     assertTableRows(1, 2, 1, 1, 2, 7, 7, 4);
 
     try {
-      emailStore.delete(firstEmailId);
+      emailStore.remove(firstEmailId);
       Assert.fail("Not exists email. Expect NonExistentEmailException.");
     } catch (NonExistentEmailException e) {
       Assert.assertNotNull(e);
     }
     assertTableRows(1, 2, 1, 1, 2, 7, 7, 4);
 
-    emailStore.delete(secondEmailId);
+    emailStore.remove(secondEmailId);
     readEmail = emailStore.read(secondEmailId);
     Assert.assertNull(readEmail);
     assertTableRows(0, 0, 0, 0, 0, 0, 0, 0);
@@ -325,16 +325,16 @@ public class EmailStoreTest {
     thirdEmail.withAttachments(Collections.emptyList());
     thirdEmail.withRecipients(new Recipients());
     thirdEmail.withFrom(null);
-    long thirdEmailId = emailStore.save(thirdEmail);
+    long thirdEmailId = emailStore.store(thirdEmail);
     assertTableRows(1, 0, 0, 0, 0, 0, 0, 0);
-    emailStore.delete(thirdEmailId);
+    emailStore.remove(thirdEmailId);
     assertTableRows(0, 0, 0, 0, 0, 0, 0, 0);
 
     Email fourthEmail = getDefaultFullEmail();
     fourthEmail.htmlContent.withHtml(null);
-    long fourthEmailId = emailStore.save(fourthEmail);
+    long fourthEmailId = emailStore.store(fourthEmail);
     assertTableRows(1, 1, 1, 1, 1, 4, 4, 2);
-    emailStore.delete(fourthEmailId);
+    emailStore.remove(fourthEmailId);
     assertTableRows(0, 0, 0, 0, 0, 0, 0, 0);
   }
 
@@ -348,7 +348,7 @@ public class EmailStoreTest {
     saveEmail.htmlContent.inlineImageByCidMap.put("second-cid",
         createAttachment("second", "second", "sample.png"));
     saveEmail.withFrom(null);
-    long storedEmailId = emailStore.save(saveEmail);
+    long storedEmailId = emailStore.store(saveEmail);
     Email readEmail = emailStore.read(storedEmailId);
     Assert.assertEquals(2, readEmail.attachments.size());
     List<Attachment> attachments = (List<Attachment>) readEmail.attachments;
@@ -379,7 +379,7 @@ public class EmailStoreTest {
   }
 
   private void testReadDefaultEmail() {
-    long storedEmailId = emailStore.save(getDefaultFullEmail());
+    long storedEmailId = emailStore.store(getDefaultFullEmail());
     Email email = emailStore.read(storedEmailId);
 
     Assert.assertEquals(1, email.attachments.size());
@@ -432,14 +432,14 @@ public class EmailStoreTest {
   private void testReadEmptyInlineImageByCidMap() {
     Email email = getDefaultFullEmail();
     email.htmlContent.inlineImageByCidMap = Collections.emptyMap();
-    long storedEmailId = emailStore.save(email);
+    long storedEmailId = emailStore.store(email);
     Email readEmail = emailStore.read(storedEmailId);
     Assert.assertEquals(0, readEmail.htmlContent.inlineImageByCidMap.size());
   }
 
   private void testSaveAttachments() {
     try {
-      emailStore.save(getDefaultFullEmail().withAttachments(null));
+      emailStore.store(getDefaultFullEmail().withAttachments(null));
       Assert.fail("Attachments is null. Expect NullPointerException.");
     } catch (NullPointerException e) {
       Assert.assertNotNull(e);
@@ -448,7 +448,7 @@ public class EmailStoreTest {
     Email email = getDefaultFullEmail();
     List<Attachment> attachments = (ArrayList<Attachment>) email.attachments;
     attachments.get(0).withContentType(null);
-    long storedEmailId = emailStore.save(email);
+    long storedEmailId = emailStore.store(email);
     Email readEmail = emailStore.read(storedEmailId);
     attachments = (ArrayList<Attachment>) readEmail.attachments;
     Assert.assertNull(attachments.get(0).contentType);
@@ -456,7 +456,7 @@ public class EmailStoreTest {
     email = getDefaultFullEmail();
     attachments = (ArrayList<Attachment>) email.attachments;
     attachments.get(0).withInputStreamSupplier(null);
-    storedEmailId = emailStore.save(email);
+    storedEmailId = emailStore.store(email);
     readEmail = emailStore.read(storedEmailId);
     attachments = (ArrayList<Attachment>) readEmail.attachments;
     Assert.assertNull(attachments.get(0).inputStreamSupplier);
@@ -464,7 +464,7 @@ public class EmailStoreTest {
     email = getDefaultFullEmail();
     attachments = (ArrayList<Attachment>) email.attachments;
     attachments.get(0).withName(null);
-    storedEmailId = emailStore.save(email);
+    storedEmailId = emailStore.store(email);
     readEmail = emailStore.read(storedEmailId);
     attachments = (ArrayList<Attachment>) readEmail.attachments;
     Assert.assertNull(attachments.get(0).name);
@@ -474,7 +474,7 @@ public class EmailStoreTest {
       attachments = (ArrayList<Attachment>) email.attachments;
       attachments.clear();
       attachments.add(null);
-      emailStore.save(email);
+      emailStore.store(email);
       Assert.fail("Attachment is null. Expect NullPointerException.");
     } catch (NullPointerException e) {
       Assert.assertNotNull(e);
@@ -484,7 +484,7 @@ public class EmailStoreTest {
   @Test
   public void testSaveEmail() {
     try {
-      emailStore.save(null);
+      emailStore.store(null);
       Assert.fail("Expect NullPointerException. The email parameter is null!");
     } catch (NullPointerException e) {
       Assert.assertNotNull(e);
@@ -498,49 +498,49 @@ public class EmailStoreTest {
 
     testSaveRecipients();
 
-    long storedEmailId = emailStore.save(getDefaultFullEmail().withSubject(null));
+    long storedEmailId = emailStore.store(getDefaultFullEmail().withSubject(null));
     Email readEmail = emailStore.read(storedEmailId);
     Assert.assertNull(readEmail.subject);
 
-    storedEmailId = emailStore.save(getDefaultFullEmail().withTextContent(null));
+    storedEmailId = emailStore.store(getDefaultFullEmail().withTextContent(null));
     readEmail = emailStore.read(storedEmailId);
     Assert.assertNull(readEmail.textContent);
 
   }
 
   private void testSaveFrom() {
-    long storedEmailId = emailStore.save(getDefaultFullEmail().withFrom(null));
+    long storedEmailId = emailStore.store(getDefaultFullEmail().withFrom(null));
     Email readEmail = emailStore.read(storedEmailId);
     Assert.assertNull(readEmail.from);
 
     Email email = getDefaultFullEmail();
     email.from.withAddress(null);
-    storedEmailId = emailStore.save(email);
+    storedEmailId = emailStore.store(email);
     readEmail = emailStore.read(storedEmailId);
     Assert.assertNull(readEmail.from.address);
 
     email = getDefaultFullEmail();
     email.from.withPersonal(null);
-    storedEmailId = emailStore.save(email);
+    storedEmailId = emailStore.store(email);
     readEmail = emailStore.read(storedEmailId);
     Assert.assertNull(readEmail.from.personal);
   }
 
   private void testSaveHtmlContent() {
-    long storedEmailId = emailStore.save(getDefaultFullEmail().withHtmlContent(null));
+    long storedEmailId = emailStore.store(getDefaultFullEmail().withHtmlContent(null));
     Email readEmail = emailStore.read(storedEmailId);
     Assert.assertNull(readEmail.htmlContent);
 
     Email email = getDefaultFullEmail();
     email.htmlContent.withHtml(null);
-    storedEmailId = emailStore.save(email);
+    storedEmailId = emailStore.store(email);
     readEmail = emailStore.read(storedEmailId);
     Assert.assertNull(readEmail.htmlContent.html);
 
     try {
       email = getDefaultFullEmail();
       email.htmlContent.withInlineImageByCidMap(null);
-      emailStore.save(email);
+      emailStore.store(email);
       Assert.fail("InlineImageByCidMap collection is null. "
           + "Expect NullPointerException.");
     } catch (NullPointerException e) {
@@ -550,7 +550,7 @@ public class EmailStoreTest {
     try {
       email = getDefaultFullEmail();
       email.htmlContent.inlineImageByCidMap.put(DEFAULT_CID, null);
-      emailStore.save(email);
+      emailStore.store(email);
       Assert.fail("Attachment is null. Expect NullPointerException.");
     } catch (NullPointerException e) {
       Assert.assertNotNull(e);
@@ -558,7 +558,7 @@ public class EmailStoreTest {
   }
 
   private void testSaveRecipients() {
-    long storedEmailId = emailStore.save(getDefaultFullEmail().withRecipients(null));
+    long storedEmailId = emailStore.store(getDefaultFullEmail().withRecipients(null));
     Email readEmail = emailStore.read(storedEmailId);
     Assert.assertTrue(readEmail.recipients.to.isEmpty());
     Assert.assertTrue(readEmail.recipients.cc.isEmpty());
@@ -567,7 +567,7 @@ public class EmailStoreTest {
     Email email = getDefaultFullEmail();
     try {
       email.recipients.withTo(null);
-      emailStore.save(email);
+      emailStore.store(email);
       Assert.fail("Recipient.TO collection is null. Expect NullPointerException.");
     } catch (NullPointerException e) {
       Assert.assertNotNull(e);
@@ -576,7 +576,7 @@ public class EmailStoreTest {
     try {
       email = getDefaultFullEmail();
       email.recipients.withCc(null);
-      emailStore.save(email);
+      emailStore.store(email);
       Assert.fail("Recipient.CC collection is null. Expect NullPointerException.");
     } catch (NullPointerException e) {
       Assert.assertNotNull(e);
@@ -585,7 +585,7 @@ public class EmailStoreTest {
     try {
       email = getDefaultFullEmail();
       email.recipients.withBcc(null);
-      emailStore.save(email);
+      emailStore.store(email);
       Assert.fail("Recipient.BCC collection is null. Expect NullPointerException.");
     } catch (NullPointerException e) {
       Assert.assertNotNull(e);

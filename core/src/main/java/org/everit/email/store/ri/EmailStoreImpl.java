@@ -132,19 +132,6 @@ public class EmailStoreImpl implements EmailStore {
     }
   }
 
-  @Override
-  public void delete(final long storedEmailId) {
-    transactionPropagator.required(() -> {
-      lockEmailForUpdate(storedEmailId);
-
-      deleteRecipients(storedEmailId);
-      deleteAttachments(storedEmailId);
-      deleteHtmlContent(storedEmailId);
-      deleteTextContent(storedEmailId);
-      deleteEmail(storedEmailId);
-    });
-  }
-
   private void deleteAttachments(final long storedEmailId) {
     QAttachment qAttachment = QAttachment.attachment;
     List<Long> binaryContentIds = querydslSupport.execute((connection, configuration) -> {
@@ -643,18 +630,15 @@ public class EmailStoreImpl implements EmailStore {
   }
 
   @Override
-  public long save(final Email email) {
-    if (email == null) {
-      throw new NullPointerException("The email cannot be null!");
-    }
+  public void remove(final long storedEmailId) {
+    transactionPropagator.required(() -> {
+      lockEmailForUpdate(storedEmailId);
 
-    return transactionPropagator.required(() -> {
-      long storedEmailId = insertEmail(email.subject);
-      insertTextContent(email.textContent, storedEmailId);
-      insertHtmlContent(email.htmlContent, storedEmailId);
-      insertAttachments(email.attachments, storedEmailId);
-      saveEmailRecipients(email.from, email.recipients, storedEmailId);
-      return storedEmailId;
+      deleteRecipients(storedEmailId);
+      deleteAttachments(storedEmailId);
+      deleteHtmlContent(storedEmailId);
+      deleteTextContent(storedEmailId);
+      deleteEmail(storedEmailId);
     });
   }
 
@@ -668,6 +652,22 @@ public class EmailStoreImpl implements EmailStore {
       insertRecipients(recipients.cc, RecipientType.CC, storedEmailId);
       insertRecipients(recipients.bcc, RecipientType.BCC, storedEmailId);
     }
+  }
+
+  @Override
+  public long store(final Email email) {
+    if (email == null) {
+      throw new NullPointerException("The email cannot be null!");
+    }
+
+    return transactionPropagator.required(() -> {
+      long storedEmailId = insertEmail(email.subject);
+      insertTextContent(email.textContent, storedEmailId);
+      insertHtmlContent(email.htmlContent, storedEmailId);
+      insertAttachments(email.attachments, storedEmailId);
+      saveEmailRecipients(email.from, email.recipients, storedEmailId);
+      return storedEmailId;
+    });
   }
 
 }
